@@ -2,7 +2,7 @@
 
 A custom implementation of an order book similar to the ones used on stock exchanges. 
 
-## Modules to build (by step number):
+## Modules to build (in order):
 
 1) The core one - matching bids and asks.
 2) Data simulator. Generate a real-like load on the order book by sending buyers/sellers requests to the core module.
