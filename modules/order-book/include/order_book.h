@@ -42,7 +42,8 @@ class OrderBook {
   void dump(std::ostream& os);
 
  private:
-  inline void addOrderAtPrice(Order&&, unsigned int);
+  inline void addOrderAtPrice(const Order&, unsigned int);
+  void executeBid(const Order&, unsigned int);
 
  private:
   /**

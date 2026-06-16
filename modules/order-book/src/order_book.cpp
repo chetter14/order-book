@@ -1,24 +1,66 @@
 #include "order_book.h"
 
-void OrderBook::addOrderAtPrice(Order&& order, unsigned int price) {
-  this->prices[price].orders.emplace(std::move(order));
+void OrderBook::addOrderAtPrice(const Order& order, unsigned int price) {
+  this->prices[price].orders.emplace(order.userId, order.amount);
+}
+
+/**
+ * @brief It's already assured that this bid price is higher than the lowest ask.
+ * 
+ * @param newOrder a bid to satisfy.
+ * @param bidPrice the price that satisfies a number of asks. 
+ */
+void OrderBook::executeBid(const Order& newOrder, unsigned int bidPrice) {
+
+  auto sharesLeft = newOrder.amount;
+
+  /* Iterate over array to match the buy with available offers */
+  for (std::size_t i = this->asksStartIdx; i <= bidPrice && sharesLeft > 0; ++i) {
+    auto& ordersQueue = this->prices[i].orders;
+    auto queueSize = ordersQueue.size();
+
+    for (std::size_t j = 0; j < queueSize && sharesLeft > 0; ++j) {
+      auto& sellOrder = ordersQueue.front();
+
+      /* Ask can be executed fully because there is a buyer */
+      if (sharesLeft >= sellOrder.amount) {
+        ordersQueue.pop();
+        sharesLeft -= sellOrder.amount;
+      } 
+      /* Ask can be executed only partially */
+      else {
+        sellOrder.amount -= sharesLeft;
+        /* Buyer's amount of shares is completed */
+        sharesLeft = 0;
+      }
+    }
+  }
+
+  /* No more satisfying sellers were found for this price */
+  if (sharesLeft > 0) {
+    this->prices[bidPrice].orders.emplace(newOrder.userId, sharesLeft);
+  }
 }
 
 void OrderBook::applyOrder(InputOrder&& inputOrder) {
   switch (inputOrder.type) {
     case OrderType::BUY: {
-        
+
       auto inputOrderPrice = inputOrder.price;
       Order newOrder{userId: inputOrder.userId, amount: inputOrder.amount};
 
-      /* Buy price exceeds the top one */
-      if (this->bidsStartIdx < inputOrderPrice) {
-        addOrderAtPrice(std::move(newOrder), inputOrderPrice);
+      /* Buy price covers asks price */
+      if (inputOrderPrice >= this->asksStartIdx) {
+        executeBid(newOrder, inputOrderPrice);
+      }
+      /* Buy price exceeds the highest bid */
+      else if (this->bidsStartIdx < inputOrderPrice) {
+        addOrderAtPrice(newOrder, inputOrderPrice);
         bidsStartIdx = inputOrderPrice;
       }
-      /* Buy price is lower than the top one */
-      else if (this->bidsStartIdx > inputOrderPrice) {
-        addOrderAtPrice(std::move(newOrder), inputOrderPrice);
+      /* Buy price is lower than or equal to the highest bid */
+      else {
+        addOrderAtPrice(newOrder, inputOrderPrice);
       }
       break;
     }
