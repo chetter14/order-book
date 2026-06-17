@@ -32,8 +32,10 @@ std::ostream& operator<<(std::ostream& os, const Order& order);
 class OrderBook {
  public:
   void applyOrder(const InputOrder&);
-  const std::queue<Order>& getOrdersAtPrice(unsigned int);
-  void dump(std::ostream& os);
+  
+  const std::queue<Order>& getOrdersAtPrice(unsigned int) const;
+
+  void dump(std::ostream& os) const;
 
  private:
   inline void addOrderAtPrice(const Order&, unsigned int);

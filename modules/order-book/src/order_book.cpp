@@ -20,7 +20,8 @@ void OrderBook::executeBid(const Order& newOrder, unsigned int bidPrice) {
   auto sharesLeft = newOrder.amount;
 
   /* Iterate over array to match the buy with available offers */
-  for (std::size_t i = this->asksStartIdx; i <= bidPrice && sharesLeft > 0; ++i) {
+  for (std::size_t i = this->asksStartIdx; i <= bidPrice && sharesLeft > 0;
+       ++i) {
     auto& ordersQueue = this->prices[i];
     auto queueSize = ordersQueue.size();
 
@@ -31,7 +32,7 @@ void OrderBook::executeBid(const Order& newOrder, unsigned int bidPrice) {
       if (sharesLeft >= sellOrder.amount) {
         ordersQueue.pop();
         sharesLeft -= sellOrder.amount;
-      } 
+      }
       /* Ask can be executed only partially */
       else {
         sellOrder.amount -= sharesLeft;
@@ -72,13 +73,29 @@ void OrderBook::applyOrder(const InputOrder& inputOrder) {
     }
 
     case OrderType::SELL: {
+      auto inputOrderPrice = inputOrder.price;
+      Order newOrder{userId: inputOrder.userId, amount: inputOrder.amount};
+
+      /* Sell price covers bids price */
+      if (inputOrderPrice <= this->bidsStartIdx) {
+        executeAsk(newOrder, inputOrderPrice);
+      }
+      /* Sell price is below the lowest ask */
+      else if (inputOrderPrice < this->asksStartIdx) {
+        addOrderAtPrice(newOrder, inputOrderPrice);
+        this->bidsStartIdx = inputOrderPrice;
+      }
+      /* Sell price is higher than or equal to the lowest ask */
+      else {
+        addOrderAtPrice(newOrder, inputOrderPrice);
+      }
       break;
     }
   }
 }
 
-const std::queue<Order>& OrderBook::getOrdersAtPrice(unsigned int price) {
+const std::queue<Order>& OrderBook::getOrdersAtPrice(unsigned int price) const {
   return this->prices[price];
 }
 
-void OrderBook::dump(std::ostream& os) {}
+void OrderBook::dump(std::ostream& os) const {}
