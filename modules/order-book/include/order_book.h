@@ -1,6 +1,7 @@
 #include <array>
 #include <ostream>
 #include <queue>
+#include <limits>
 
 constexpr std::size_t MAX_PRICE_VALUE = 10000;
 
@@ -26,19 +27,12 @@ struct Order {
   unsigned int amount;
 };
 
-/**
- * @brief Prices are represented as cells in a vector. 
- * Each price has orders (or don't), that were inserted in chronological order.
- * 
- */
-struct OrdersAtPrice {
-  std::queue<Order> orders;
-  OrderType type;
-};
+std::ostream& operator<<(std::ostream& os, const Order& order);
 
 class OrderBook {
  public:
-  void applyOrder(InputOrder&&);
+  void applyOrder(const InputOrder&);
+  const std::queue<Order>& getOrdersAtPrice(unsigned int);
   void dump(std::ostream& os);
 
  private:
@@ -50,11 +44,11 @@ class OrderBook {
   * @brief Array of prices that holds bids and asks.
   * 
   */
-  std::array<OrdersAtPrice, MAX_PRICE_VALUE> prices;
+  std::array<std::queue<Order>, MAX_PRICE_VALUE> prices;
 
   /**
    * @brief Take care of top bids price and bottom asks price.
    * 
    */
-  std::size_t bidsStartIdx{0}, asksStartIdx{0};
+  std::size_t bidsStartIdx{0}, asksStartIdx{std::numeric_limits<std::size_t>::max() - 1};
 };

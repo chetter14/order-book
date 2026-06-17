@@ -1,7 +1,12 @@
 #include "order_book.h"
 
+std::ostream& operator<<(std::ostream& os, const Order& order) {
+  os << "Order {userId=" << order.userId << " amount=" << order.amount << "}";
+  return os;
+}
+
 void OrderBook::addOrderAtPrice(const Order& order, unsigned int price) {
-  this->prices[price].orders.emplace(order.userId, order.amount);
+  this->prices[price].emplace(order.userId, order.amount);
 }
 
 /**
@@ -16,7 +21,7 @@ void OrderBook::executeBid(const Order& newOrder, unsigned int bidPrice) {
 
   /* Iterate over array to match the buy with available offers */
   for (std::size_t i = this->asksStartIdx; i <= bidPrice && sharesLeft > 0; ++i) {
-    auto& ordersQueue = this->prices[i].orders;
+    auto& ordersQueue = this->prices[i];
     auto queueSize = ordersQueue.size();
 
     for (std::size_t j = 0; j < queueSize && sharesLeft > 0; ++j) {
@@ -38,11 +43,12 @@ void OrderBook::executeBid(const Order& newOrder, unsigned int bidPrice) {
 
   /* No more satisfying sellers were found for this price */
   if (sharesLeft > 0) {
-    this->prices[bidPrice].orders.emplace(newOrder.userId, sharesLeft);
+    this->prices[bidPrice].emplace(newOrder.userId, sharesLeft);
+    this->bidsStartIdx = bidPrice;
   }
 }
 
-void OrderBook::applyOrder(InputOrder&& inputOrder) {
+void OrderBook::applyOrder(const InputOrder& inputOrder) {
   switch (inputOrder.type) {
     case OrderType::BUY: {
 
@@ -56,7 +62,7 @@ void OrderBook::applyOrder(InputOrder&& inputOrder) {
       /* Buy price exceeds the highest bid */
       else if (this->bidsStartIdx < inputOrderPrice) {
         addOrderAtPrice(newOrder, inputOrderPrice);
-        bidsStartIdx = inputOrderPrice;
+        this->bidsStartIdx = inputOrderPrice;
       }
       /* Buy price is lower than or equal to the highest bid */
       else {
@@ -69,6 +75,10 @@ void OrderBook::applyOrder(InputOrder&& inputOrder) {
       break;
     }
   }
+}
+
+const std::queue<Order>& OrderBook::getOrdersAtPrice(unsigned int price) {
+  return this->prices[price];
 }
 
 void OrderBook::dump(std::ostream& os) {}
