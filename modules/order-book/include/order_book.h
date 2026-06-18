@@ -40,6 +40,7 @@ class OrderBook {
  private:
   inline void addOrderAtPrice(const Order&, unsigned int);
   void executeBid(const Order&, unsigned int);
+  void executeAsk(const Order&, unsigned int);
 
  private:
   /**

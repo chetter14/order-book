@@ -9,6 +9,27 @@ void OrderBook::addOrderAtPrice(const Order& order, unsigned int price) {
   this->prices[price].emplace(order.userId, order.amount);
 }
 
+void executeOrdersAtPrice(std::queue<Order>& ordersQueue,
+                          unsigned int& sharesLeft) {
+  auto queueSize = ordersQueue.size();
+
+  for (std::size_t j = 0; j < queueSize && sharesLeft > 0; ++j) {
+    auto& order = ordersQueue.front();
+
+    /* Bid/ask can be executed fully because there is a seller/buyer */
+    if (sharesLeft >= order.amount) {
+      ordersQueue.pop();
+      sharesLeft -= order.amount;
+    }
+    /* Bid/ask can be executed only partially */
+    else {
+      order.amount -= sharesLeft;
+      /* Buyer/seller's amount of shares is completed */
+      sharesLeft = 0;
+    }
+  }
+}
+
 /**
  * @brief It's already assured that this bid price is higher than the lowest ask.
  * 
@@ -22,23 +43,10 @@ void OrderBook::executeBid(const Order& newOrder, unsigned int bidPrice) {
   /* Iterate over array to match the buy with available offers */
   for (std::size_t i = this->asksStartIdx; i <= bidPrice && sharesLeft > 0;
        ++i) {
-    auto& ordersQueue = this->prices[i];
-    auto queueSize = ordersQueue.size();
+    executeOrdersAtPrice(this->prices[i], sharesLeft);
 
-    for (std::size_t j = 0; j < queueSize && sharesLeft > 0; ++j) {
-      auto& sellOrder = ordersQueue.front();
-
-      /* Ask can be executed fully because there is a buyer */
-      if (sharesLeft >= sellOrder.amount) {
-        ordersQueue.pop();
-        sharesLeft -= sellOrder.amount;
-      }
-      /* Ask can be executed only partially */
-      else {
-        sellOrder.amount -= sharesLeft;
-        /* Buyer's amount of shares is completed */
-        sharesLeft = 0;
-      }
+    if (sharesLeft != 0) {
+      this->asksStartIdx++;
     }
   }
 
@@ -46,6 +54,33 @@ void OrderBook::executeBid(const Order& newOrder, unsigned int bidPrice) {
   if (sharesLeft > 0) {
     this->prices[bidPrice].emplace(newOrder.userId, sharesLeft);
     this->bidsStartIdx = bidPrice;
+  }
+}
+
+/**
+ * @brief It's already assured that this ask price is lower than the highest bid.
+ * 
+ * @param newOrder an ask to satisfy.
+ * @param bidPrice the price that satisfies a number of bids. 
+ */
+void OrderBook::executeAsk(const Order& newOrder, unsigned int askPrice) {
+
+  auto sharesLeft = newOrder.amount;
+
+  /* Iterate over array to match the ask with available buyers */
+  for (std::size_t i = this->bidsStartIdx; i >= askPrice && sharesLeft > 0;
+       --i) {
+    executeOrdersAtPrice(this->prices[i], sharesLeft);
+
+    if (sharesLeft != 0) {
+      this->bidsStartIdx--;
+    }
+  }
+
+  /* No more satisfying buyers were found for this price */
+  if (sharesLeft > 0) {
+    this->prices[askPrice].emplace(newOrder.userId, sharesLeft);
+    this->asksStartIdx = askPrice;
   }
 }
 
@@ -83,7 +118,7 @@ void OrderBook::applyOrder(const InputOrder& inputOrder) {
       /* Sell price is below the lowest ask */
       else if (inputOrderPrice < this->asksStartIdx) {
         addOrderAtPrice(newOrder, inputOrderPrice);
-        this->bidsStartIdx = inputOrderPrice;
+        this->asksStartIdx = inputOrderPrice;
       }
       /* Sell price is higher than or equal to the lowest ask */
       else {
