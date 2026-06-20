@@ -468,3 +468,272 @@ TEST(OrderBookBuySellMixed, CompleteBidLater2) {
     EXPECT_EQ(orders.size(), 0);
   }
 }
+
+TEST(OrderBookBuySellMixed, EnoughBuyersForAsk1) {
+  OrderBook ob;
+
+  std::array<InputOrder, 4> inputOrders = {
+      InputOrder{userId: 1, price: 30, amount: 5, type: OrderType::BUY},
+      InputOrder{userId: 3, price: 28, amount: 10, type: OrderType::BUY},
+      InputOrder{userId: 2, price: 26, amount: 8, type: OrderType::BUY},
+      InputOrder{userId: 4, price: 25, amount: 25, type: OrderType::SELL}};
+
+  for (auto&& order : inputOrders)
+    ob.applyOrder(order);
+
+  EXPECT_EQ(getTotalOrdersCount(ob), 1);
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(30);
+    EXPECT_EQ(orders.size(), 0);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(28);
+    EXPECT_EQ(orders.size(), 0);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(26);
+    EXPECT_EQ(orders.size(), 0);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(25);
+    EXPECT_EQ(orders.size(), 1);
+
+    EXPECT_EQ(orders.front().amount, 2);
+    EXPECT_EQ(orders.front().userId, inputOrders[3].userId);
+  }
+}
+
+TEST(OrderBookBuySellMixed, EnoughBuyersForAsk2) {
+  OrderBook ob;
+
+  std::array<InputOrder, 4> inputOrders = {
+      InputOrder{userId: 1, price: 30, amount: 5, type: OrderType::BUY},
+      InputOrder{userId: 3, price: 27, amount: 10, type: OrderType::BUY},
+      InputOrder{userId: 2, price: 20, amount: 14, type: OrderType::BUY},
+      InputOrder{userId: 4, price: 25, amount: 15, type: OrderType::SELL}};
+
+  for (auto&& order : inputOrders)
+    ob.applyOrder(order);
+
+  EXPECT_EQ(getTotalOrdersCount(ob), 1);
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(30);
+    EXPECT_EQ(orders.size(), 0);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(27);
+    EXPECT_EQ(orders.size(), 0);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(25);
+    EXPECT_EQ(orders.size(), 0);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(20);
+    EXPECT_EQ(orders.size(), 1);
+
+    EXPECT_EQ(orders.front().amount, inputOrders[2].amount);
+    EXPECT_EQ(orders.front().userId, inputOrders[2].userId);
+  }
+}
+
+TEST(OrderBookBuySellMixed, NotEnoughBuyersForAsk1) {
+  OrderBook ob;
+
+  std::array<InputOrder, 4> inputOrders = {
+      InputOrder{userId: 1, price: 28, amount: 5, type: OrderType::BUY},
+      InputOrder{userId: 3, price: 26, amount: 10, type: OrderType::BUY},
+      InputOrder{userId: 2, price: 20, amount: 12, type: OrderType::BUY},
+      InputOrder{userId: 4, price: 25, amount: 24, type: OrderType::SELL}};
+
+  for (auto&& order : inputOrders)
+    ob.applyOrder(order);
+
+  EXPECT_EQ(getTotalOrdersCount(ob), 2);
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(28);
+    EXPECT_EQ(orders.size(), 0);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(26);
+    EXPECT_EQ(orders.size(), 0);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(25);
+    EXPECT_EQ(orders.size(), 1);
+
+    EXPECT_EQ(orders.front().amount, 9);
+    EXPECT_EQ(orders.front().userId, inputOrders[3].userId);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(20);
+    EXPECT_EQ(orders.size(), 1);
+
+    EXPECT_EQ(orders.front().amount, inputOrders[2].amount);
+    EXPECT_EQ(orders.front().userId, inputOrders[2].userId);
+  }
+}
+
+TEST(OrderBookBuySellMixed, NotEnoughBuyersForAsk2) {
+  OrderBook ob;
+
+  std::array<InputOrder, 5> inputOrders = {
+      InputOrder{userId: 1, price: 28, amount: 5, type: OrderType::BUY},
+      InputOrder{userId: 3, price: 25, amount: 10, type: OrderType::BUY},
+      InputOrder{userId: 2, price: 20, amount: 14, type: OrderType::BUY},
+      InputOrder{userId: 4, price: 24, amount: 22, type: OrderType::SELL},
+      InputOrder{userId: 5, price: 26, amount: 3, type: OrderType::BUY}};
+
+  for (auto&& order : inputOrders)
+    ob.applyOrder(order);
+
+  EXPECT_EQ(getTotalOrdersCount(ob), 2);
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(28);
+    EXPECT_EQ(orders.size(), 0);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(25);
+    EXPECT_EQ(orders.size(), 0);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(26);
+    EXPECT_EQ(orders.size(), 0);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(24);
+    EXPECT_EQ(orders.size(), 1);
+
+    EXPECT_EQ(orders.front().amount, 4);
+    EXPECT_EQ(orders.front().userId, inputOrders[3].userId);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(20);
+    EXPECT_EQ(orders.size(), 1);
+
+    EXPECT_EQ(orders.front().amount, inputOrders[2].amount);
+    EXPECT_EQ(orders.front().userId, inputOrders[2].userId);
+  }
+}
+
+/**
+ * @brief There is not enough buyers at first, then an appropriate match is found, and 
+ * the ask is completed
+ * 
+ */
+TEST(OrderBookBuySellMixed, CompleteAskLater1) {
+  OrderBook ob;
+
+  std::array<InputOrder, 5> inputOrders = {
+      InputOrder{userId: 1, price: 25, amount: 5, type: OrderType::BUY},
+      InputOrder{userId: 3, price: 27, amount: 10, type: OrderType::BUY},
+      InputOrder{userId: 2, price: 20, amount: 14, type: OrderType::BUY},
+      InputOrder{userId: 4, price: 24, amount: 22, type: OrderType::SELL},
+      InputOrder{userId: 5, price: 28, amount: 30, type: OrderType::BUY}};
+
+  for (auto&& order : inputOrders)
+    ob.applyOrder(order);
+
+  EXPECT_EQ(getTotalOrdersCount(ob), 2);
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(25);
+    EXPECT_EQ(orders.size(), 0);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(27);
+    EXPECT_EQ(orders.size(), 0);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(24);
+    EXPECT_EQ(orders.size(), 0);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(28);
+    EXPECT_EQ(orders.size(), 1);
+
+    EXPECT_EQ(orders.front().amount, 23);
+    EXPECT_EQ(orders.front().userId, inputOrders[4].userId);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(20);
+    EXPECT_EQ(orders.size(), 1);
+
+    EXPECT_EQ(orders.front().amount, inputOrders[2].amount);
+    EXPECT_EQ(orders.front().userId, inputOrders[2].userId);
+  }
+}
+
+TEST(OrderBookBuySellMixed, CompleteAskLater2) {
+  OrderBook ob;
+
+  std::array<InputOrder, 5> inputOrders = {
+      InputOrder{userId: 1, price: 26, amount: 5, type: OrderType::BUY},
+      InputOrder{userId: 3, price: 28, amount: 10, type: OrderType::BUY},
+      InputOrder{userId: 4, price: 22, amount: 28, type: OrderType::SELL},
+      InputOrder{userId: 5, price: 24, amount: 5, type: OrderType::BUY},
+      InputOrder{userId: 2, price: 25, amount: 8, type: OrderType::BUY}};
+
+  for (auto&& order : inputOrders)
+    ob.applyOrder(order);
+
+  EXPECT_EQ(getTotalOrdersCount(ob), 0);
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(26);
+    EXPECT_EQ(orders.size(), 0);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(28);
+    EXPECT_EQ(orders.size(), 0);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(22);
+
+#if 0
+    auto&& order = orders.front();
+    std::cout << order << "\n";
+#endif
+
+    EXPECT_EQ(orders.size(), 0);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(24);
+    EXPECT_EQ(orders.size(), 0);
+  }
+
+  {
+    auto&& orders = ob.getOrdersAtPrice(25);
+
+#if 0
+    auto&& order = orders.front();
+    std::cout << order << "\n";
+#endif
+
+    EXPECT_EQ(orders.size(), 0);
+  }
+}
