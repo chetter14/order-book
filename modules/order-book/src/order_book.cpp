@@ -13,7 +13,7 @@ void executeOrdersAtPrice(std::queue<Order>& ordersQueue,
                           unsigned int& sharesLeft) {
   auto queueSize = ordersQueue.size();
 
-  for (std::size_t j = 0; j < queueSize && sharesLeft > 0; ++j) {
+  while (!ordersQueue.empty() && sharesLeft > 0) {
     auto& order = ordersQueue.front();
 
     /* Bid/ask can be executed fully because there is a seller/buyer */
@@ -45,8 +45,8 @@ void OrderBook::executeBid(const Order& newOrder, unsigned int bidPrice) {
        ++i) {
     executeOrdersAtPrice(this->prices[i], sharesLeft);
 
-    if (sharesLeft != 0) {
-      this->asksStartIdx++;
+    if (this->prices[i].empty()) {
+      this->asksStartIdx = i + 1;
     }
   }
 
@@ -72,8 +72,8 @@ void OrderBook::executeAsk(const Order& newOrder, unsigned int askPrice) {
        --i) {
     executeOrdersAtPrice(this->prices[i], sharesLeft);
 
-    if (sharesLeft != 0) {
-      this->bidsStartIdx--;
+    if (this->prices[i].empty()) {
+      this->bidsStartIdx = i - 1;
     }
   }
 
@@ -89,7 +89,7 @@ void OrderBook::applyOrder(const InputOrder& inputOrder) {
     case OrderType::BUY: {
 
       auto inputOrderPrice = inputOrder.price;
-      Order newOrder{userId: inputOrder.userId, amount: inputOrder.amount};
+      Order newOrder{.userId = inputOrder.userId, .amount = inputOrder.amount};
 
       /* Buy price covers asks price */
       if (inputOrderPrice >= this->asksStartIdx) {
@@ -109,7 +109,7 @@ void OrderBook::applyOrder(const InputOrder& inputOrder) {
 
     case OrderType::SELL: {
       auto inputOrderPrice = inputOrder.price;
-      Order newOrder{userId: inputOrder.userId, amount: inputOrder.amount};
+      Order newOrder{.userId = inputOrder.userId, .amount = inputOrder.amount};
 
       /* Sell price covers bids price */
       if (inputOrderPrice <= this->bidsStartIdx) {
