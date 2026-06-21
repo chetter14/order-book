@@ -1,5 +1,21 @@
 #include "order_book.h"
 
+void OrderBook::advanceAsksBoundary() {
+  auto curAsksIdx = this->asksStartIdx;
+  while (this->prices[curAsksIdx].empty() && curAsksIdx < MAX_PRICE_VALUE) {
+    curAsksIdx++;
+  }
+  this->asksStartIdx = curAsksIdx;
+}
+
+void OrderBook::retreatBidsBoundary() {
+  auto curBidsIdx = this->bidsStartIdx;
+  while (this->prices[curBidsIdx].empty() && curBidsIdx > 0) {
+    curBidsIdx--;
+  }
+  this->bidsStartIdx = curBidsIdx;
+}
+
 std::ostream& operator<<(std::ostream& os, const Order& order) {
   os << "Order {userId=" << order.userId << " amount=" << order.amount << "}";
   return os;
@@ -7,6 +23,18 @@ std::ostream& operator<<(std::ostream& os, const Order& order) {
 
 void OrderBook::addOrderAtPrice(const Order& order, unsigned int price) {
   this->prices[price].emplace(order.userId, order.amount);
+}
+
+const std::queue<Order>& OrderBook::getOrdersAtPrice(unsigned int price) const {
+  return this->prices[price];
+}
+
+std::size_t OrderBook::getTotalOrdersCount(const OrderBook& ob) const {
+  std::size_t count = 0U;
+  for (auto i = 0U; i < MAX_PRICE_VALUE; ++i) {
+    count += ob.getOrdersAtPrice(i).size();
+  }
+  return count;
 }
 
 void executeOrdersAtPrice(std::queue<Order>& ordersQueue,
@@ -50,6 +78,8 @@ void OrderBook::executeBid(const Order& newOrder, unsigned int bidPrice) {
     }
   }
 
+  advanceAsksBoundary();
+
   /* No more satisfying sellers were found for this price */
   if (sharesLeft > 0) {
     this->prices[bidPrice].emplace(newOrder.userId, sharesLeft);
@@ -76,6 +106,8 @@ void OrderBook::executeAsk(const Order& newOrder, unsigned int askPrice) {
       this->bidsStartIdx = i - 1;
     }
   }
+
+  retreatBidsBoundary();
 
   /* No more satisfying buyers were found for this price */
   if (sharesLeft > 0) {
@@ -127,10 +159,6 @@ void OrderBook::applyOrder(const InputOrder& inputOrder) {
       break;
     }
   }
-}
-
-const std::queue<Order>& OrderBook::getOrdersAtPrice(unsigned int price) const {
-  return this->prices[price];
 }
 
 void OrderBook::dump(std::ostream& os) const {}

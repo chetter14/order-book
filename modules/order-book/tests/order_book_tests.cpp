@@ -2,14 +2,6 @@
 #include <array>
 #include "order_book.h"
 
-std::size_t getTotalOrdersCount(const OrderBook& ob) {
-  std::size_t count = 0U;
-  for (auto i = 0U; i < MAX_PRICE_VALUE; ++i) {
-    count += ob.getOrdersAtPrice(i).size();
-  }
-  return count;
-}
-
 TEST(OrderBookGetOrders, NonExisting) {
   OrderBook ob;
 
