@@ -5,7 +5,7 @@
 TEST(OrderBookGetOrders, NonExisting) {
   OrderBook ob;
 
-  EXPECT_EQ(getTotalOrdersCount(ob), 0);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 0);
 }
 
 class OrderBookBuySellSeparate : public ::testing::TestWithParam<OrderType> {};
@@ -26,7 +26,7 @@ TEST_P(OrderBookBuySellSeparate, Once) {
   EXPECT_EQ(order.userId, inputOrder.userId);
 
   /* No more orders */
-  EXPECT_EQ(getTotalOrdersCount(ob), 1);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 1);
 }
 
 TEST_P(OrderBookBuySellSeparate, DifferentPrices) {
@@ -52,7 +52,7 @@ TEST_P(OrderBookBuySellSeparate, DifferentPrices) {
     EXPECT_EQ(order.userId, inputOrder.userId);
   }
 
-  EXPECT_EQ(getTotalOrdersCount(ob), 3);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 3);
 }
 
 TEST_P(OrderBookBuySellSeparate, TheSamePrices) {
@@ -77,7 +77,7 @@ TEST_P(OrderBookBuySellSeparate, TheSamePrices) {
   EXPECT_EQ(orders.back().amount, inputOrders[2].amount);
   EXPECT_EQ(orders.back().userId, inputOrders[2].userId);
 
-  EXPECT_EQ(getTotalOrdersCount(ob), 3);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 3);
 }
 
 TEST_P(OrderBookBuySellSeparate, TheSameAndDifferentPrices) {
@@ -139,7 +139,7 @@ TEST_P(OrderBookBuySellSeparate, TheSameAndDifferentPrices) {
     EXPECT_EQ(orders.front().userId, inputOrders[5].userId);
   }
 
-  EXPECT_EQ(getTotalOrdersCount(ob), 6);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 6);
 }
 
 INSTANTIATE_TEST_SUITE_P(, OrderBookBuySellSeparate,
@@ -157,7 +157,7 @@ TEST(OrderBookBuySellMixed, NoOverlap) {
   for (auto&& order : inputOrders)
     ob.applyOrder(order);
 
-  EXPECT_EQ(getTotalOrdersCount(ob), 4);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 4);
 
   {
     auto&& orders = ob.getOrdersAtPrice(20);
@@ -204,7 +204,7 @@ TEST(OrderBookBuySellMixed, EnoughSellersForBid1) {
   for (auto&& order : inputOrders)
     ob.applyOrder(order);
 
-  EXPECT_EQ(getTotalOrdersCount(ob), 1);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 1);
 
   {
     auto&& orders = ob.getOrdersAtPrice(20);
@@ -242,7 +242,7 @@ TEST(OrderBookBuySellMixed, EnoughSellersForBid2) {
   for (auto&& order : inputOrders)
     ob.applyOrder(order);
 
-  EXPECT_EQ(getTotalOrdersCount(ob), 1);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 1);
 
   {
     auto&& orders = ob.getOrdersAtPrice(20);
@@ -280,7 +280,7 @@ TEST(OrderBookBuySellMixed, NotEnoughSellersForBid1) {
   for (auto&& order : inputOrders)
     ob.applyOrder(order);
 
-  EXPECT_EQ(getTotalOrdersCount(ob), 2);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 2);
 
   {
     auto&& orders = ob.getOrdersAtPrice(20);
@@ -322,7 +322,7 @@ TEST(OrderBookBuySellMixed, NotEnoughSellersForBid2) {
   for (auto&& order : inputOrders)
     ob.applyOrder(order);
 
-  EXPECT_EQ(getTotalOrdersCount(ob), 2);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 2);
 
   {
     auto&& orders = ob.getOrdersAtPrice(20);
@@ -374,7 +374,7 @@ TEST(OrderBookBuySellMixed, CompleteBidLater1) {
   for (auto&& order : inputOrders)
     ob.applyOrder(order);
 
-  EXPECT_EQ(getTotalOrdersCount(ob), 2);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 2);
 
   {
     auto&& orders = ob.getOrdersAtPrice(20);
@@ -421,7 +421,7 @@ TEST(OrderBookBuySellMixed, CompleteBidLater2) {
   for (auto&& order : inputOrders)
     ob.applyOrder(order);
 
-  EXPECT_EQ(getTotalOrdersCount(ob), 0);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 0);
 
   {
     auto&& orders = ob.getOrdersAtPrice(20);
@@ -473,7 +473,7 @@ TEST(OrderBookBuySellMixed, EnoughBuyersForAsk1) {
   for (auto&& order : inputOrders)
     ob.applyOrder(order);
 
-  EXPECT_EQ(getTotalOrdersCount(ob), 1);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 1);
 
   {
     auto&& orders = ob.getOrdersAtPrice(30);
@@ -511,7 +511,7 @@ TEST(OrderBookBuySellMixed, EnoughBuyersForAsk2) {
   for (auto&& order : inputOrders)
     ob.applyOrder(order);
 
-  EXPECT_EQ(getTotalOrdersCount(ob), 1);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 1);
 
   {
     auto&& orders = ob.getOrdersAtPrice(30);
@@ -549,7 +549,7 @@ TEST(OrderBookBuySellMixed, NotEnoughBuyersForAsk1) {
   for (auto&& order : inputOrders)
     ob.applyOrder(order);
 
-  EXPECT_EQ(getTotalOrdersCount(ob), 2);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 2);
 
   {
     auto&& orders = ob.getOrdersAtPrice(28);
@@ -591,7 +591,7 @@ TEST(OrderBookBuySellMixed, NotEnoughBuyersForAsk2) {
   for (auto&& order : inputOrders)
     ob.applyOrder(order);
 
-  EXPECT_EQ(getTotalOrdersCount(ob), 2);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 2);
 
   {
     auto&& orders = ob.getOrdersAtPrice(28);
@@ -643,7 +643,7 @@ TEST(OrderBookBuySellMixed, CompleteAskLater1) {
   for (auto&& order : inputOrders)
     ob.applyOrder(order);
 
-  EXPECT_EQ(getTotalOrdersCount(ob), 2);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 2);
 
   {
     auto&& orders = ob.getOrdersAtPrice(25);
@@ -690,7 +690,7 @@ TEST(OrderBookBuySellMixed, CompleteAskLater2) {
   for (auto&& order : inputOrders)
     ob.applyOrder(order);
 
-  EXPECT_EQ(getTotalOrdersCount(ob), 0);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 0);
 
   {
     auto&& orders = ob.getOrdersAtPrice(26);

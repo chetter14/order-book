@@ -25,14 +25,32 @@ void OrderBook::addOrderAtPrice(const Order& order, unsigned int price) {
   this->prices[price].emplace(order.userId, order.amount);
 }
 
-const std::queue<Order>& OrderBook::getOrdersAtPrice(unsigned int price) const {
-  return this->prices[price];
+/**
+ * @brief Get all the orders at price. std::vector<Order> is not essentially an internal implementation. 
+ * This operation is not guaranteed to be fast.
+ * 
+ * @param price where to get orders at
+ * @return a bunch of orders present at the price
+ */
+std::vector<Order> OrderBook::getOrdersAtPrice(unsigned int price) const {
+  const auto& orders = this->prices[price];
+  auto tempOrders = orders;
+
+  std::vector<Order> res;
+  res.reserve(orders.size());
+
+  while (!tempOrders.empty()) {
+    res.push_back(tempOrders.front());
+    tempOrders.pop();
+  }
+
+  return res;
 }
 
-std::size_t OrderBook::getTotalOrdersCount(const OrderBook& ob) const {
+std::size_t OrderBook::getTotalOrdersCount() const {
   std::size_t count = 0U;
   for (auto i = 0U; i < MAX_PRICE_VALUE; ++i) {
-    count += ob.getOrdersAtPrice(i).size();
+    count += this->getOrdersAtPrice(i).size();
   }
   return count;
 }
@@ -161,4 +179,6 @@ void OrderBook::applyOrder(const InputOrder& inputOrder) {
   }
 }
 
-void OrderBook::dump(std::ostream& os) const {}
+void OrderBook::dump(std::ostream& os) const {
+  /* TO-DO: implement */
+}

@@ -2,7 +2,7 @@
 #include <limits>
 #include <ostream>
 #include <queue>
-#include <gtest/gtest_prod.h>
+#include <vector>
 
 constexpr std::size_t MAX_PRICE_VALUE = 10000;
 
@@ -34,21 +34,19 @@ class OrderBook {
  public:
   void applyOrder(const InputOrder&);
 
+  std::size_t getTotalOrdersCount() const;
+  std::vector<Order> getOrdersAtPrice(unsigned int) const;
+
   void dump(std::ostream& os) const;
 
  private:
-  inline void addOrderAtPrice(const Order&, unsigned int);
-  inline const std::queue<Order>& getOrdersAtPrice(unsigned int) const;
-  
-  std::size_t getTotalOrdersCount(const OrderBook& ob) const;
+  void addOrderAtPrice(const Order&, unsigned int);
 
   void executeBid(const Order&, unsigned int);
   void executeAsk(const Order&, unsigned int);
 
   void advanceAsksBoundary();
   void retreatBidsBoundary();
-
-  FRIEND_TEST(OrderBookTestSuite);
 
  private:
   /**
