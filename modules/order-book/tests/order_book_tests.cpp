@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include <array>
 #include <algorithm>
+#include <array>
 #include "order_book.h"
 
 /**
@@ -14,11 +14,19 @@ unsigned int restingAt(const OrderBook& ob, unsigned int price) {
   const auto& orders = ob.getOrdersAtPrice(price);
   unsigned int total = 0U;
 
-  std::for_each(orders.cbegin(), orders.cend(), [&](const Order& order) {
-    total += order.amount;
-  });
+  std::for_each(orders.cbegin(), orders.cend(),
+                [&](const Order& order) { total += order.amount; });
 
   return total;
+}
+
+constexpr OrderType oppositeOrderType(OrderType type) {
+  switch (type) {
+    case OrderType::BUY:
+      return OrderType::SELL;
+    case OrderType::SELL:
+      return OrderType::BUY;
+  }
 }
 
 TEST(OrderBookGetOrders, NonExisting) {
@@ -172,7 +180,23 @@ TEST(OrderBookBuySellMixed, NoOverlap) {
   EXPECT_EQ(ob.getTotalOrdersCount(), 4);
 }
 
-TEST(OrderBookBuySellMixed, PartialFillLeavesResidualVisibleToNextOrder) {
+TEST(OrderBookMixedBuyFirst, PartialFillLeavesResidualVisibleToNextOrder) {
+  OrderBook ob;
+
+  ob.applyOrder(buy(1, 100, 200));
+  ob.applyOrder(sell(2, 100, 50));
+
+  EXPECT_EQ(restingAt(ob, 100), 150);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 1);
+
+  ob.applyOrder(sell(3, 100, 100));
+
+  EXPECT_EQ(restingAt(ob, 100), 50);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 1);
+  EXPECT_EQ(ob.getOrdersAtPrice(100).at(0).userId, 1);
+}
+
+TEST(OrderBookMixedSellFirst, PartialFillLeavesResidualVisibleToNextOrder) {
   OrderBook ob;
 
   ob.applyOrder(sell(1, 100, 200));
@@ -185,6 +209,103 @@ TEST(OrderBookBuySellMixed, PartialFillLeavesResidualVisibleToNextOrder) {
 
   EXPECT_EQ(restingAt(ob, 100), 50);
   EXPECT_EQ(ob.getTotalOrdersCount(), 1);
+  EXPECT_EQ(ob.getOrdersAtPrice(100).at(0).userId, 1);
+}
+
+TEST(OrderBookMixedBuyFirst, ExactFillEmptiesLevel) {
+  OrderBook ob;
+
+  ob.applyOrder(buy(1, 100, 50));
+  ob.applyOrder(sell(2, 100, 50));
+
+  EXPECT_EQ(restingAt(ob, 100), 0);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 0);
+
+  ob.applyOrder(sell(3, 100, 30));
+  EXPECT_EQ(restingAt(ob, 100), 30);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 1);
+}
+
+TEST(OrderBookMixedSellFirst, ExactFillEmptiesLevel) {
+  OrderBook ob;
+
+  ob.applyOrder(sell(1, 100, 50));
+  ob.applyOrder(buy(2, 100, 50));
+
+  EXPECT_EQ(restingAt(ob, 100), 0);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 0);
+
+  ob.applyOrder(buy(3, 100, 30));
+  EXPECT_EQ(restingAt(ob, 100), 30);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 1);
+}
+
+TEST(OrderBookMixedBuyFirst, SellSweepsMultipleBidLevels) {
+  OrderBook ob;
+
+  ob.applyOrder(buy(1, 100, 30));
+  ob.applyOrder(buy(2, 101, 30));
+  ob.applyOrder(buy(3, 102, 30));
+
+  EXPECT_EQ(ob.getTotalOrdersCount(), 3);
+
+  ob.applyOrder(sell(4, 100, 75));
+
+  EXPECT_EQ(restingAt(ob, 102), 0);
+  EXPECT_EQ(restingAt(ob, 101), 0);
+  EXPECT_EQ(restingAt(ob, 100), 15);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 1);
+  EXPECT_EQ(ob.getOrdersAtPrice(100).at(0).userId, 1);
+
+  ob.applyOrder(buy(5, 101, 20));
+  EXPECT_EQ(restingAt(ob, 101), 20);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 2);
+}
+
+TEST(OrderBookMixedSellFirst, BuySweepsMultipleAskLevels) {
+  OrderBook ob;
+
+  ob.applyOrder(sell(1, 100, 30));
+  ob.applyOrder(sell(2, 101, 30));
+  ob.applyOrder(sell(3, 102, 30));
+
+  EXPECT_EQ(ob.getTotalOrdersCount(), 3);
+
+  ob.applyOrder(buy(4, 102, 75));
+
+  EXPECT_EQ(restingAt(ob, 102), 15);
+  EXPECT_EQ(restingAt(ob, 101), 0);
+  EXPECT_EQ(restingAt(ob, 100), 0);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 1);
+  EXPECT_EQ(ob.getOrdersAtPrice(102).at(0).userId, 3);
+
+  ob.applyOrder(sell(5, 101, 20));
+  EXPECT_EQ(restingAt(ob, 101), 20);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 2);
+}
+
+TEST(OrderBookMixedBuyFirst, TimePriorityFIFO) {
+  OrderBook ob;
+
+  ob.applyOrder(buy(1, 100, 40));
+  ob.applyOrder(buy(2, 100, 40));
+  ob.applyOrder(sell(3, 100, 40));
+
+  EXPECT_EQ(restingAt(ob, 100), 40);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 1);
+  EXPECT_EQ(ob.getOrdersAtPrice(100).at(0).userId, 2);
+}
+
+TEST(OrderBookMixedSellFirst, TimePriorityFIFO) {
+  OrderBook ob;
+
+  ob.applyOrder(sell(1, 100, 40));
+  ob.applyOrder(sell(2, 100, 40));
+  ob.applyOrder(buy(3, 100, 40));
+
+  EXPECT_EQ(restingAt(ob, 100), 40);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 1);
+  EXPECT_EQ(ob.getOrdersAtPrice(100).at(0).userId, 2);
 }
 
 TEST(OrderBookBuySellMixed, EnoughSellersForBid1) {
