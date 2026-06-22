@@ -1,5 +1,21 @@
 #include "order_book.h"
 
+InputOrder buy(unsigned long long userId, unsigned int price,
+               unsigned int amount) {
+  return InputOrder{.userId = userId,
+                    .price = price,
+                    .amount = amount,
+                    .type = OrderType::BUY};
+}
+
+InputOrder sell(unsigned long long userId, unsigned int price,
+                unsigned int amount) {
+  return InputOrder{.userId = userId,
+                    .price = price,
+                    .amount = amount,
+                    .type = OrderType::SELL};
+}
+
 void OrderBook::advanceAsksBoundary() {
   auto curAsksIdx = this->asksStartIdx;
   while (this->prices[curAsksIdx].empty() && curAsksIdx < MAX_PRICE_VALUE) {

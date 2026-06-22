@@ -1,10 +1,28 @@
 #include <gtest/gtest.h>
 #include <array>
+#include <algorithm>
 #include "order_book.h"
+
+/**
+ * @brief Returns a total number of shares at a specific price
+ * 
+ * @param ob the order book
+ * @param price price with orders at
+ * @return number of shares present 
+ */
+unsigned int restingAt(const OrderBook& ob, unsigned int price) {
+  const auto& orders = ob.getOrdersAtPrice(price);
+  unsigned int total = 0U;
+
+  std::for_each(orders.cbegin(), orders.cend(), [&](const Order& order) {
+    total += order.amount;
+  });
+
+  return total;
+}
 
 TEST(OrderBookGetOrders, NonExisting) {
   OrderBook ob;
-
   EXPECT_EQ(ob.getTotalOrdersCount(), 0);
 }
 
@@ -14,7 +32,8 @@ TEST_P(OrderBookBuySellSeparate, Once) {
   OrderType orderType = GetParam();
 
   OrderBook ob;
-  InputOrder inputOrder{userId: 1, price: 20, amount: 5, type: orderType};
+  InputOrder inputOrder{
+      .userId = 1, .price = 20, .amount = 5, .type = orderType};
 
   ob.applyOrder(inputOrder);
 
@@ -47,7 +66,6 @@ TEST_P(OrderBookBuySellSeparate, DifferentPrices) {
     EXPECT_EQ(orders.size(), 1);
 
     auto&& order = orders.front();
-    std::cout << order << "\n";
     EXPECT_EQ(order.amount, inputOrder.amount);
     EXPECT_EQ(order.userId, inputOrder.userId);
   }
@@ -55,7 +73,7 @@ TEST_P(OrderBookBuySellSeparate, DifferentPrices) {
   EXPECT_EQ(ob.getTotalOrdersCount(), 3);
 }
 
-TEST_P(OrderBookBuySellSeparate, TheSamePrices) {
+TEST_P(OrderBookBuySellSeparate, TheSamePrice) {
   OrderType orderType = GetParam();
 
   OrderBook ob;
@@ -70,6 +88,7 @@ TEST_P(OrderBookBuySellSeparate, TheSamePrices) {
 
   auto&& orders = ob.getOrdersAtPrice(20);
   EXPECT_EQ(orders.size(), 3);
+  EXPECT_EQ(restingAt(ob, 20), 25);
 
   EXPECT_EQ(orders.front().amount, inputOrders[0].amount);
   EXPECT_EQ(orders.front().userId, inputOrders[0].userId);
@@ -90,7 +109,7 @@ TEST_P(OrderBookBuySellSeparate, TheSameAndDifferentPrices) {
       InputOrder{userId: 2, price: 22, amount: 12, type: orderType},
       InputOrder{userId: 1, price: 22, amount: 8, type: orderType},
       InputOrder{userId: 3, price: 24, amount: 10, type: orderType},
-      InputOrder{userId: 2, price: 23, amount: 6, type: orderType},
+      InputOrder{userId: 2, price: 22, amount: 6, type: orderType},
       InputOrder{userId: 1, price: 25, amount: 20, type: orderType}};
 
   for (auto&& inputOrder : inputOrders)
@@ -106,13 +125,14 @@ TEST_P(OrderBookBuySellSeparate, TheSameAndDifferentPrices) {
 
   {
     auto&& orders = ob.getOrdersAtPrice(22);
-    EXPECT_EQ(orders.size(), 2);
+    EXPECT_EQ(orders.size(), 3);
+    EXPECT_EQ(restingAt(ob, 22), 26);
 
     EXPECT_EQ(orders.front().amount, inputOrders[1].amount);
     EXPECT_EQ(orders.front().userId, inputOrders[1].userId);
 
-    EXPECT_EQ(orders.back().amount, inputOrders[2].amount);
-    EXPECT_EQ(orders.back().userId, inputOrders[2].userId);
+    EXPECT_EQ(orders.back().amount, inputOrders[4].amount);
+    EXPECT_EQ(orders.back().userId, inputOrders[4].userId);
   }
 
   {
@@ -121,14 +141,6 @@ TEST_P(OrderBookBuySellSeparate, TheSameAndDifferentPrices) {
 
     EXPECT_EQ(orders.front().amount, inputOrders[3].amount);
     EXPECT_EQ(orders.front().userId, inputOrders[3].userId);
-  }
-
-  {
-    auto&& orders = ob.getOrdersAtPrice(23);
-    EXPECT_EQ(orders.size(), 1);
-
-    EXPECT_EQ(orders.front().amount, inputOrders[4].amount);
-    EXPECT_EQ(orders.front().userId, inputOrders[4].userId);
   }
 
   {
@@ -148,48 +160,31 @@ INSTANTIATE_TEST_SUITE_P(, OrderBookBuySellSeparate,
 TEST(OrderBookBuySellMixed, NoOverlap) {
   OrderBook ob;
 
-  std::array<InputOrder, 4> inputOrders = {
-      InputOrder{userId: 1, price: 15, amount: 5, type: OrderType::BUY},
-      InputOrder{userId: 3, price: 25, amount: 10, type: OrderType::SELL},
-      InputOrder{userId: 2, price: 20, amount: 20, type: OrderType::BUY},
-      InputOrder{userId: 4, price: 30, amount: 12, type: OrderType::SELL}};
+  ob.applyOrder(buy(1, 15, 5));
+  ob.applyOrder(sell(2, 25, 10));
+  ob.applyOrder(buy(3, 20, 20));
+  ob.applyOrder(sell(4, 30, 12));
 
-  for (auto&& order : inputOrders)
-    ob.applyOrder(order);
-
+  EXPECT_EQ(restingAt(ob, 15), 5);
+  EXPECT_EQ(restingAt(ob, 25), 10);
+  EXPECT_EQ(restingAt(ob, 20), 20);
+  EXPECT_EQ(restingAt(ob, 30), 12);
   EXPECT_EQ(ob.getTotalOrdersCount(), 4);
+}
 
-  {
-    auto&& orders = ob.getOrdersAtPrice(20);
-    EXPECT_EQ(orders.size(), 1);
+TEST(OrderBookBuySellMixed, PartialFillLeavesResidualVisibleToNextOrder) {
+  OrderBook ob;
 
-    EXPECT_EQ(orders.front().amount, inputOrders[2].amount);
-    EXPECT_EQ(orders.front().userId, inputOrders[2].userId);
-  }
+  ob.applyOrder(sell(1, 100, 200));
+  ob.applyOrder(buy(2, 100, 50));
 
-  {
-    auto&& orders = ob.getOrdersAtPrice(15);
-    EXPECT_EQ(orders.size(), 1);
+  EXPECT_EQ(restingAt(ob, 100), 150);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 1);
 
-    EXPECT_EQ(orders.front().amount, inputOrders[0].amount);
-    EXPECT_EQ(orders.front().userId, inputOrders[0].userId);
-  }
+  ob.applyOrder(buy(3, 100, 100));
 
-  {
-    auto&& orders = ob.getOrdersAtPrice(30);
-    EXPECT_EQ(orders.size(), 1);
-
-    EXPECT_EQ(orders.front().amount, inputOrders[3].amount);
-    EXPECT_EQ(orders.front().userId, inputOrders[3].userId);
-  }
-
-  {
-    auto&& orders = ob.getOrdersAtPrice(25);
-    EXPECT_EQ(orders.size(), 1);
-
-    EXPECT_EQ(orders.front().amount, inputOrders[1].amount);
-    EXPECT_EQ(orders.front().userId, inputOrders[1].userId);
-  }
+  EXPECT_EQ(restingAt(ob, 100), 50);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 1);
 }
 
 TEST(OrderBookBuySellMixed, EnoughSellersForBid1) {

@@ -19,6 +19,12 @@ struct InputOrder {
   OrderType type;
 };
 
+InputOrder buy(unsigned long long userId, unsigned int price,
+               unsigned int amount);
+
+InputOrder sell(unsigned long long userId, unsigned int price,
+                unsigned int amount);
+
 /**
  * @brief Orders handled inside the order book. Price of order is known.
  * 
