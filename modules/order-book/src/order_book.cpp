@@ -1,6 +1,8 @@
 #include "order_book.h"
 #include <exception>
+#include <expected>
 #include <iostream>
+#include <ranges>
 
 InputOrder buy(unsigned long long userId, unsigned int price,
                unsigned int amount) {
@@ -19,19 +21,28 @@ InputOrder sell(unsigned long long userId, unsigned int price,
 }
 
 void OrderBook::advanceAsksBoundary() {
-  auto curAsksIdx = this->asksStartIdx;
-  while (this->prices[curAsksIdx].empty() && curAsksIdx < MAX_PRICE_VALUE) {
-    curAsksIdx++;
-  }
-  this->asksStartIdx = curAsksIdx;
+  auto candidateAsks = std::views::iota(asksStartIdx, MAX_PRICE_VALUE + 1);
+
+  auto firstNotEmptyAsk = std::ranges::find_if(
+      candidateAsks,
+      [this](std::size_t i) { return !this->prices[i].empty(); });
+
+  this->asksStartIdx = (firstNotEmptyAsk != candidateAsks.end())
+                           ? *firstNotEmptyAsk
+                           : MAX_PRICE_VALUE;
 }
 
 void OrderBook::retreatBidsBoundary() {
-  auto curBidsIdx = this->bidsStartIdx;
-  while (this->prices[curBidsIdx].empty() && curBidsIdx > MIN_PRICE_VALUE) {
-    curBidsIdx--;
-  }
-  this->bidsStartIdx = curBidsIdx;
+  auto candidateBids =
+      std::views::iota(MIN_PRICE_VALUE, bidsStartIdx + 1) | std::views::reverse;
+
+  auto firstNotEmptyBid = std::ranges::find_if(
+      candidateBids,
+      [this](std::size_t i) { return !this->prices[i].empty(); });
+
+  this->bidsStartIdx = (firstNotEmptyBid != candidateBids.end())
+                           ? *firstNotEmptyBid
+                           : MIN_PRICE_VALUE;
 }
 
 std::ostream& operator<<(std::ostream& os, const Order& order) {
@@ -67,6 +78,7 @@ std::vector<Order> OrderBook::getOrdersAtPrice(unsigned int price) const {
 
 std::size_t OrderBook::getTotalOrdersCount() const {
   std::size_t count = 0U;
+
   for (auto i = MIN_PRICE_VALUE; i <= MAX_PRICE_VALUE; ++i) {
     count += this->getOrdersAtPrice(i).size();
   }
@@ -106,10 +118,6 @@ void OrderBook::executeBid(const Order& newOrder, unsigned int bidPrice) {
   for (std::size_t i = this->asksStartIdx; i <= bidPrice && sharesLeft > 0;
        ++i) {
     executeOrdersAtPrice(this->prices[i], sharesLeft);
-
-    if (this->prices[i].empty() && i < MAX_PRICE_VALUE) {
-      this->asksStartIdx = i + 1;
-    }
   }
 
   advanceAsksBoundary();
@@ -135,10 +143,6 @@ void OrderBook::executeAsk(const Order& newOrder, unsigned int askPrice) {
   for (std::size_t i = this->bidsStartIdx; i >= askPrice && sharesLeft > 0;
        --i) {
     executeOrdersAtPrice(this->prices[i], sharesLeft);
-
-    if (this->prices[i].empty() && i > MIN_PRICE_VALUE) {
-      this->bidsStartIdx = i - 1;
-    }
   }
 
   retreatBidsBoundary();
@@ -150,9 +154,14 @@ void OrderBook::executeAsk(const Order& newOrder, unsigned int askPrice) {
   }
 }
 
-void OrderBook::applyOrder(const InputOrder& inputOrder) {
-  if (inputOrder.price == 0U || inputOrder.price > MAX_PRICE_VALUE) {
-    throw std::invalid_argument("Price is equal to 0 or more than 9_999!");
+std::expected<void, OrderApplyError> OrderBook::applyOrder(
+    const InputOrder& inputOrder) {
+  if (inputOrder.price == 0U) {
+    return std::unexpected(OrderApplyError::PRICE_EQUAL_TO_ZERO);
+  }
+
+  if (inputOrder.price > MAX_PRICE_VALUE || inputOrder.price < 0) {
+    return std::unexpected(OrderApplyError::PRICE_OUT_OF_RANGE);
   }
 
   switch (inputOrder.type) {
@@ -197,6 +206,8 @@ void OrderBook::applyOrder(const InputOrder& inputOrder) {
       break;
     }
   }
+
+  return {};
 }
 
 void OrderBook::dump(std::ostream& os) const {

@@ -440,6 +440,37 @@ TEST_P(OrderBookEdgeCases, SellFirstPriceAtValue) {
   EXPECT_EQ(ob.getTotalOrdersCount(), 0);
 }
 
+TEST_P(OrderBookEdgeCases, PriceOutOfRange) {
+  OrderBook ob;
+
+  auto result = ob.applyOrder(buy(1, MAX_PRICE_VALUE + 1, 40));
+
+  EXPECT_FALSE(result.has_value());
+  EXPECT_EQ(result.error(), OrderApplyError::PRICE_OUT_OF_RANGE);
+
+  // EXPECT_EQ(restingAt(ob, MAX_PRICE_VALUE + 1), 0);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 0);
+
+  result = ob.applyOrder(sell(2, -1, 20));
+
+  EXPECT_FALSE(result.has_value());
+  EXPECT_EQ(result.error(), OrderApplyError::PRICE_OUT_OF_RANGE);
+
+  // EXPECT_EQ(restingAt(ob, -1), 0);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 0);
+}
+
+TEST_P(OrderBookEdgeCases, PriceEqualToZero) {
+  OrderBook ob;
+
+  auto result = ob.applyOrder(buy(1, 0, 40));
+
+  EXPECT_FALSE(result.has_value());
+  EXPECT_EQ(result.error(), OrderApplyError::PRICE_EQUAL_TO_ZERO);
+
+  // EXPECT_EQ(restingAt(ob, MAX_PRICE_VALUE + 1), 0);
+  EXPECT_EQ(ob.getTotalOrdersCount(), 0);
+}
+
 INSTANTIATE_TEST_SUITE_P(, OrderBookEdgeCases,
                          ::testing::Values(MIN_PRICE_VALUE, MAX_PRICE_VALUE));
-

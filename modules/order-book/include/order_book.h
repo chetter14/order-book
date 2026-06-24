@@ -1,4 +1,5 @@
 #include <array>
+#include <expected>
 #include <limits>
 #include <ostream>
 #include <queue>
@@ -34,11 +35,13 @@ struct Order {
   unsigned int amount;
 };
 
+enum class OrderApplyError { PRICE_OUT_OF_RANGE, PRICE_EQUAL_TO_ZERO };
+
 std::ostream& operator<<(std::ostream& os, const Order& order);
 
 class OrderBook {
  public:
-  void applyOrder(const InputOrder&);
+  std::expected<void, OrderApplyError> applyOrder(const InputOrder&);
 
   std::size_t getTotalOrdersCount() const;
   std::vector<Order> getOrdersAtPrice(unsigned int) const;
