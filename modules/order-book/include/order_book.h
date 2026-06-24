@@ -4,7 +4,7 @@
 #include <queue>
 #include <vector>
 
-constexpr std::size_t MAX_PRICE_VALUE = 10000;
+constexpr std::size_t MAX_PRICE_VALUE = 9999U, MIN_PRICE_VALUE = 1U;
 
 enum class OrderType { BUY, SELL, UNDEFINED };
 
@@ -65,5 +65,5 @@ class OrderBook {
    * @brief Take care of top bids price and bottom asks price.
    * 
    */
-  std::size_t bidsStartIdx{0}, asksStartIdx{MAX_PRICE_VALUE};
+  std::size_t bidsStartIdx{MIN_PRICE_VALUE}, asksStartIdx{MAX_PRICE_VALUE};
 };

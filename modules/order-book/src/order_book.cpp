@@ -1,4 +1,6 @@
 #include "order_book.h"
+#include <exception>
+#include <iostream>
 
 InputOrder buy(unsigned long long userId, unsigned int price,
                unsigned int amount) {
@@ -26,7 +28,7 @@ void OrderBook::advanceAsksBoundary() {
 
 void OrderBook::retreatBidsBoundary() {
   auto curBidsIdx = this->bidsStartIdx;
-  while (this->prices[curBidsIdx].empty() && curBidsIdx > 0) {
+  while (this->prices[curBidsIdx].empty() && curBidsIdx > MIN_PRICE_VALUE) {
     curBidsIdx--;
   }
   this->bidsStartIdx = curBidsIdx;
@@ -45,7 +47,7 @@ void OrderBook::addOrderAtPrice(const Order& order, unsigned int price) {
  * @brief Get all the orders at price. std::vector<Order> is not essentially an internal implementation. 
  * This operation is not guaranteed to be fast.
  * 
- * @param price where to get orders at
+ * @param price price of orders to get 
  * @return a bunch of orders present at the price
  */
 std::vector<Order> OrderBook::getOrdersAtPrice(unsigned int price) const {
@@ -65,7 +67,7 @@ std::vector<Order> OrderBook::getOrdersAtPrice(unsigned int price) const {
 
 std::size_t OrderBook::getTotalOrdersCount() const {
   std::size_t count = 0U;
-  for (auto i = 0U; i < MAX_PRICE_VALUE; ++i) {
+  for (auto i = MIN_PRICE_VALUE; i <= MAX_PRICE_VALUE; ++i) {
     count += this->getOrdersAtPrice(i).size();
   }
   return count;
@@ -73,8 +75,6 @@ std::size_t OrderBook::getTotalOrdersCount() const {
 
 void executeOrdersAtPrice(std::queue<Order>& ordersQueue,
                           unsigned int& sharesLeft) {
-  auto queueSize = ordersQueue.size();
-
   while (!ordersQueue.empty() && sharesLeft > 0) {
     auto& order = ordersQueue.front();
 
@@ -107,7 +107,7 @@ void OrderBook::executeBid(const Order& newOrder, unsigned int bidPrice) {
        ++i) {
     executeOrdersAtPrice(this->prices[i], sharesLeft);
 
-    if (this->prices[i].empty()) {
+    if (this->prices[i].empty() && i < MAX_PRICE_VALUE) {
       this->asksStartIdx = i + 1;
     }
   }
@@ -136,7 +136,7 @@ void OrderBook::executeAsk(const Order& newOrder, unsigned int askPrice) {
        --i) {
     executeOrdersAtPrice(this->prices[i], sharesLeft);
 
-    if (this->prices[i].empty()) {
+    if (this->prices[i].empty() && i > MIN_PRICE_VALUE) {
       this->bidsStartIdx = i - 1;
     }
   }
@@ -151,6 +151,10 @@ void OrderBook::executeAsk(const Order& newOrder, unsigned int askPrice) {
 }
 
 void OrderBook::applyOrder(const InputOrder& inputOrder) {
+  if (inputOrder.price == 0U || inputOrder.price > MAX_PRICE_VALUE) {
+    throw std::invalid_argument("Price is equal to 0 or more than 9_999!");
+  }
+
   switch (inputOrder.type) {
     case OrderType::BUY: {
 
