@@ -10,11 +10,14 @@
  * @param price price with orders at
  * @return number of shares present 
  */
-unsigned int restingAt(const OrderBook& ob, unsigned int price) {
-  const auto& orders = ob.getOrdersAtPrice(price);
-  unsigned int total = 0U;
+unsigned int restingAt(const OrderBook& ob, Price price) {
+  auto orders = ob.getOrdersAtPrice(price);
+  if (!orders.has_value()) {
+    return -1;
+  }
 
-  std::for_each(orders.cbegin(), orders.cend(),
+  unsigned int total = 0U;
+  std::for_each(orders.value().cbegin(), orders.value().cend(),
                 [&](const Order& order) { total += order.amount; });
 
   return total;
@@ -45,10 +48,10 @@ TEST_P(OrderBookBuySellSeparate, Once) {
 
   ob.applyOrder(inputOrder);
 
-  auto&& orders = ob.getOrdersAtPrice(20);
+  auto orders = ob.getOrdersAtPrice(20).value();
   EXPECT_EQ(orders.size(), 1);
 
-  auto&& order = orders.front();
+  const auto& order = orders.front();
   EXPECT_EQ(order.amount, inputOrder.amount);
   EXPECT_EQ(order.userId, inputOrder.userId);
 
@@ -70,10 +73,10 @@ TEST_P(OrderBookBuySellSeparate, DifferentPrices) {
     ob.applyOrder(inputOrder);
 
   for (auto&& inputOrder : inputOrders) {
-    auto&& orders = ob.getOrdersAtPrice(inputOrder.price);
+    auto orders = ob.getOrdersAtPrice(inputOrder.price).value();
     EXPECT_EQ(orders.size(), 1);
 
-    auto&& order = orders.front();
+    const auto& order = orders.front();
     EXPECT_EQ(order.amount, inputOrder.amount);
     EXPECT_EQ(order.userId, inputOrder.userId);
   }
@@ -94,7 +97,7 @@ TEST_P(OrderBookBuySellSeparate, TheSamePrice) {
   for (auto&& inputOrder : inputOrders)
     ob.applyOrder(inputOrder);
 
-  auto&& orders = ob.getOrdersAtPrice(20);
+  auto orders = ob.getOrdersAtPrice(20).value();
   EXPECT_EQ(orders.size(), 3);
   EXPECT_EQ(restingAt(ob, 20), 25);
 
@@ -124,7 +127,7 @@ TEST_P(OrderBookBuySellSeparate, TheSameAndDifferentPrices) {
     ob.applyOrder(inputOrder);
 
   {
-    auto&& orders = ob.getOrdersAtPrice(20);
+    auto orders = ob.getOrdersAtPrice(20).value();
     EXPECT_EQ(orders.size(), 1);
 
     EXPECT_EQ(orders.front().amount, inputOrders[0].amount);
@@ -132,7 +135,7 @@ TEST_P(OrderBookBuySellSeparate, TheSameAndDifferentPrices) {
   }
 
   {
-    auto&& orders = ob.getOrdersAtPrice(22);
+    auto orders = ob.getOrdersAtPrice(22).value();
     EXPECT_EQ(orders.size(), 3);
     EXPECT_EQ(restingAt(ob, 22), 26);
 
@@ -144,7 +147,7 @@ TEST_P(OrderBookBuySellSeparate, TheSameAndDifferentPrices) {
   }
 
   {
-    auto&& orders = ob.getOrdersAtPrice(24);
+    auto orders = ob.getOrdersAtPrice(24).value();
     EXPECT_EQ(orders.size(), 1);
 
     EXPECT_EQ(orders.front().amount, inputOrders[3].amount);
@@ -152,7 +155,7 @@ TEST_P(OrderBookBuySellSeparate, TheSameAndDifferentPrices) {
   }
 
   {
-    auto&& orders = ob.getOrdersAtPrice(25);
+    auto orders = ob.getOrdersAtPrice(25).value();
     EXPECT_EQ(orders.size(), 1);
 
     EXPECT_EQ(orders.front().amount, inputOrders[5].amount);
@@ -193,7 +196,7 @@ TEST(OrderBookMixedBuyFirst, PartialFillLeavesResidualVisibleToNextOrder) {
 
   EXPECT_EQ(restingAt(ob, 100), 50);
   EXPECT_EQ(ob.getTotalOrdersCount(), 1);
-  EXPECT_EQ(ob.getOrdersAtPrice(100).at(0).userId, 1);
+  EXPECT_EQ(ob.getOrdersAtPrice(100).value().at(0).userId, 1);
 }
 
 TEST(OrderBookMixedSellFirst, PartialFillLeavesResidualVisibleToNextOrder) {
@@ -209,7 +212,7 @@ TEST(OrderBookMixedSellFirst, PartialFillLeavesResidualVisibleToNextOrder) {
 
   EXPECT_EQ(restingAt(ob, 100), 50);
   EXPECT_EQ(ob.getTotalOrdersCount(), 1);
-  EXPECT_EQ(ob.getOrdersAtPrice(100).at(0).userId, 1);
+  EXPECT_EQ(ob.getOrdersAtPrice(100).value().at(0).userId, 1);
 }
 
 TEST(OrderBookMixedBuyFirst, ExactFillEmptiesLevel) {
@@ -255,7 +258,7 @@ TEST(OrderBookMixedBuyFirst, SellSweepsMultipleBidLevels) {
   EXPECT_EQ(restingAt(ob, 101), 0);
   EXPECT_EQ(restingAt(ob, 100), 15);
   EXPECT_EQ(ob.getTotalOrdersCount(), 1);
-  EXPECT_EQ(ob.getOrdersAtPrice(100).at(0).userId, 1);
+  EXPECT_EQ(ob.getOrdersAtPrice(100).value().at(0).userId, 1);
 
   ob.applyOrder(buy(5, 101, 20));
   EXPECT_EQ(restingAt(ob, 101), 20);
@@ -277,7 +280,7 @@ TEST(OrderBookMixedSellFirst, BuySweepsMultipleAskLevels) {
   EXPECT_EQ(restingAt(ob, 101), 0);
   EXPECT_EQ(restingAt(ob, 100), 0);
   EXPECT_EQ(ob.getTotalOrdersCount(), 1);
-  EXPECT_EQ(ob.getOrdersAtPrice(102).at(0).userId, 3);
+  EXPECT_EQ(ob.getOrdersAtPrice(102).value().at(0).userId, 3);
 
   ob.applyOrder(sell(5, 101, 20));
   EXPECT_EQ(restingAt(ob, 101), 20);
@@ -293,7 +296,7 @@ TEST(OrderBookMixedBuyFirst, TimePriorityFIFO) {
 
   EXPECT_EQ(restingAt(ob, 100), 40);
   EXPECT_EQ(ob.getTotalOrdersCount(), 1);
-  EXPECT_EQ(ob.getOrdersAtPrice(100).at(0).userId, 2);
+  EXPECT_EQ(ob.getOrdersAtPrice(100).value().at(0).userId, 2);
 }
 
 TEST(OrderBookMixedSellFirst, TimePriorityFIFO) {
@@ -305,7 +308,7 @@ TEST(OrderBookMixedSellFirst, TimePriorityFIFO) {
 
   EXPECT_EQ(restingAt(ob, 100), 40);
   EXPECT_EQ(ob.getTotalOrdersCount(), 1);
-  EXPECT_EQ(ob.getOrdersAtPrice(100).at(0).userId, 2);
+  EXPECT_EQ(ob.getOrdersAtPrice(100).value().at(0).userId, 2);
 }
 
 TEST(OrderBookMixedBuyFirst, CrossingSellFullyMatches) {
@@ -446,30 +449,28 @@ TEST_P(OrderBookEdgeCases, PriceOutOfRange) {
   auto result = ob.applyOrder(buy(1, MAX_PRICE_VALUE + 1, 40));
 
   EXPECT_FALSE(result.has_value());
-  EXPECT_EQ(result.error(), OrderApplyError::PRICE_OUT_OF_RANGE);
+  EXPECT_EQ(result.error(), OrderBookError::PRICE_OUT_OF_RANGE);
 
-  // EXPECT_EQ(restingAt(ob, MAX_PRICE_VALUE + 1), 0);
+  EXPECT_EQ(restingAt(ob, MAX_PRICE_VALUE + 1), -1);
   EXPECT_EQ(ob.getTotalOrdersCount(), 0);
 
-  result = ob.applyOrder(sell(2, -1, 20));
+  result = ob.applyOrder(sell(2, 0, 20));
 
   EXPECT_FALSE(result.has_value());
-  EXPECT_EQ(result.error(), OrderApplyError::PRICE_OUT_OF_RANGE);
+  EXPECT_EQ(result.error(), OrderBookError::PRICE_OUT_OF_RANGE);
 
-  // EXPECT_EQ(restingAt(ob, -1), 0);
+  EXPECT_EQ(restingAt(ob, -1), -1);
   EXPECT_EQ(ob.getTotalOrdersCount(), 0);
 }
 
-TEST_P(OrderBookEdgeCases, PriceEqualToZero) {
+TEST_P(OrderBookEdgeCases, GetOrdersByInvalidPrice) {
   OrderBook ob;
 
-  auto result = ob.applyOrder(buy(1, 0, 40));
+  auto orders = ob.getOrdersAtPrice(0);
+  EXPECT_FALSE(orders.has_value());
 
-  EXPECT_FALSE(result.has_value());
-  EXPECT_EQ(result.error(), OrderApplyError::PRICE_EQUAL_TO_ZERO);
-
-  // EXPECT_EQ(restingAt(ob, MAX_PRICE_VALUE + 1), 0);
-  EXPECT_EQ(ob.getTotalOrdersCount(), 0);
+  orders = ob.getOrdersAtPrice(MAX_PRICE_VALUE + 1);
+  EXPECT_FALSE(orders.has_value());
 }
 
 INSTANTIATE_TEST_SUITE_P(, OrderBookEdgeCases,
