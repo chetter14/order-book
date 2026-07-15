@@ -1,0 +1,101 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "gcc-debug",
+            "generator": "Ninja",
+            "binaryDir": "build/gcc-debug",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "g++-15",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "gcc-release",
+            "generator": "Ninja",
+            "binaryDir": "build/gcc-release",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "g++-15",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "gcc-asan",
+            "generator": "Ninja",
+            "binaryDir": "build/gcc-asan",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "g++-15",
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "USE_ASAN": "ON"
+            }
+        },
+        {
+            "name": "gcc-tsan",
+            "generator": "Ninja",
+            "binaryDir": "build/gcc-tsan",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "g++-15",
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "USE_TSAN": "ON"
+            }
+        },
+        {
+            "name": "gcc-coverage",
+            "generator": "Ninja",
+            "binaryDir": "build/gcc-coverage",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "g++-15",
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "USE_COVERAGE": "ON"
+            }
+        },
+        {
+            "name": "clang-debug",
+            "generator": "Ninja",
+            "binaryDir": "build/clang-debug",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "clang++-20",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "clang-release",
+            "generator": "Ninja",
+            "binaryDir": "build/clang-release",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "clang++-20",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "clang-asan",
+            "generator": "Ninja",
+            "binaryDir": "build/clang-asan",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "clang++-20",
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "USE_ASAN": "ON"
+            }
+        },
+        {
+            "name": "clang-tsan",
+            "generator": "Ninja",
+            "binaryDir": "build/clang-tsan",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "clang++-20",
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "USE_TSAN": "ON"
+            }
+        },
+        {
+            "name": "clang-coverage",
+            "generator": "Ninja",
+            "binaryDir": "build/clang-coverage",
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "clang++-20",
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "USE_COVERAGE": "ON"
+            }
+        }
+    ]
+}
