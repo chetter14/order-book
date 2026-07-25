@@ -1,7 +1,7 @@
 ## Goals
 
 1) An order book that is capable of processing buy and sell requests at a specific price.
-2) Executed orders are logged into the file.
+2) Executed orders are logged into the file by a logger module. This module is ran asynchronously to not stop the order book thread.
 3) Generator of orders is running in one process with order book matching engine, but in a separate thread.
 4) Get hands on a serious project development in C++, including: planning and design of the program, full cmake usage, various build types, sanitizers, unit tests, code coverage, benchmarks.
 

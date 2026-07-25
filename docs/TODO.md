@@ -7,15 +7,19 @@
     - Write a script for getting coverage results in `.html` format. Add tests (or fix code) to get >=95% of lines coverage. 
     
 - **M2. Driven end to end.**
-    - Add order generator and logger. A complete pipeline (but single-threaded). 
+    - Implement an order generator. Write unit-tests. Get >=95% of lines coverage.
+    - Implement a logger. Write unit-tests. Get >=95% of lines coverage.
+    - The complete system is single-threaded at the moment.
+    - Write integration tests (to check that the complete pipeline works as expected).
 
 - **M3. Measurable.**
-    - Add benchmarking, throughput, etc. Add profiling.
+    - Add benchmarking and measurements of performance. 
+    - Add a possibility of profiling the whole program.
 
 - **M4. Concurrent.**
-    - Add multithreading, SPSC queue, etc. 
-    - Fix sanitizer errors.
+    - Implement multithreading. Add SPSC queue (for communication between the order generator and order book).
+    - Fix TSan errors.
 
 - **M5. Optimizations. Results.**
-    - Do optimizations to get better results at performance.
+    - Optimize code to get at least x2 in performance. Run a profiler to find bottlenecks.
     - Conclude the project, complete READMEs.

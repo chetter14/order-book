@@ -8,11 +8,11 @@ Modules that the program consists of.
 
 **Inputs**: orders that contain user id (who made an order), price, amount (number of stocks to buy/sell), type of order (buy or sell).
 
-**Outputs**: empty, but only when an order is executed, it outputs information about the executed order - ids of users whose orders were executed (if one buys/sells, then another sells/buys), price, and amount. 
+**Outputs**: only when an order is executed, it outputs information about the executed order - ids of users whose orders were executed (if one buys/sells, then another sells/buys), price, and amount. 
 
 **Does not do**: printing out executed orders.
 
-## 2. Orders generator
+## 2. Order generator
 
 **Responsibility**: generates real-like orders with user id, price, amount, and order type, and simulates real-like behavior of the stock market (who and at which price places an order). 
 
@@ -33,7 +33,5 @@ Modules that the program consists of.
 **Does not do**: processing/modifications of order(-s) in any way. 
 
 # Interfaces
-
-*TO-DO: think how to handle logging from order book; use just another thread (thread 3)? or thread pool? or anything else?*
 
 ![image](Interfaces.png)
