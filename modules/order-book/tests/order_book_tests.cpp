@@ -3,6 +3,8 @@
 #include <array>
 #include "order_book.h"
 
+using namespace ob;
+
 /**
  * @brief Returns a total number of shares at a specific price
  * 
@@ -29,6 +31,8 @@ constexpr OrderType oppositeOrderType(OrderType type) {
       return OrderType::SELL;
     case OrderType::SELL:
       return OrderType::BUY;
+    case OrderType::UNDEFINED:
+      return OrderType::UNDEFINED;
   }
 }
 

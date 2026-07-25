@@ -1,13 +1,30 @@
+#ifndef ORDER_BOOK_H
+#define ORDER_BOOK_H
+
 #include <array>
 #include <expected>
 #include <limits>
 #include <ostream>
 #include <queue>
+#include <string>
 #include <vector>
+
+namespace ob {
 
 constexpr std::size_t MAX_PRICE_VALUE = 9999U, MIN_PRICE_VALUE = 1U;
 
 enum class OrderType { BUY, SELL, UNDEFINED };
+
+constexpr std::string_view to_string(OrderType orderType) {
+  switch (orderType) {
+    case OrderType::BUY:
+      return "BUY";
+    case OrderType::SELL:
+      return "SELL";
+    case OrderType::UNDEFINED:
+      return "UNDEFINED";
+  }
+}
 
 using Price = unsigned int;
 
@@ -22,8 +39,9 @@ struct InputOrder {
   OrderType type;
 };
 
-InputOrder buy(unsigned long long userId, Price price, unsigned int amount);
+std::ostream& operator<<(std::ostream& os, const InputOrder& order);
 
+InputOrder buy(unsigned long long userId, Price price, unsigned int amount);
 InputOrder sell(unsigned long long userId, Price price, unsigned int amount);
 
 /**
@@ -71,3 +89,7 @@ class OrderBook {
    */
   Price bidsStart{MIN_PRICE_VALUE}, asksStart{MAX_PRICE_VALUE};
 };
+
+}  // namespace ob
+
+#endif

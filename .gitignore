@@ -70,3 +70,6 @@ Testing/
 
 # Lcov coverage report
 coverage-html/
+
+# VS Code settings
+.vscode/
