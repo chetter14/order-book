@@ -26,7 +26,7 @@ Modules that the program consists of.
 
 **Responsibility**: records the information of executed order and time of its execution. 
 
-**Inputs**: two user ids (who buys/sells from another who sells/buys), price, and amount of executed order.
+**Inputs**: two user ids (who buys from seller, or who sells to buyer), price, and amount of executed order.
 
 **Outputs**: empty.
 
