@@ -5,16 +5,16 @@
 #include <iostream>
 #include <ranges>
 
-ob::InputOrder ob::buy(unsigned long long userId, ob::Price price,
-                       unsigned int amount) {
+ob::InputOrder ob::buy(UserId userId, ob::Price price,
+                       Amount amount) {
   return ob::InputOrder{.userId = userId,
                         .price = price,
                         .amount = amount,
                         .type = ob::OrderType::BUY};
 }
 
-ob::InputOrder ob::sell(unsigned long long userId, ob::Price price,
-                        unsigned int amount) {
+ob::InputOrder ob::sell(UserId userId, ob::Price price,
+                        Amount amount) {
   return ob::InputOrder{.userId = userId,
                         .price = price,
                         .amount = amount,
@@ -102,7 +102,7 @@ std::size_t ob::OrderBook::getTotalOrdersCount() const {
 }
 
 void executeOrdersAtPrice(std::queue<ob::Order>& ordersQueue,
-                          unsigned int& sharesLeft) {
+                          ob::Amount& sharesLeft) {
   while (!ordersQueue.empty() && sharesLeft > 0) {
     auto& order = ordersQueue.front();
 

@@ -11,7 +11,11 @@
 
 namespace ob {
 
-constexpr std::size_t MAX_PRICE_VALUE = 9999U, MIN_PRICE_VALUE = 1U;
+using UserId = unsigned long long;
+using Price = unsigned int;
+using Amount = unsigned int;
+
+constexpr Price MAX_PRICE_VALUE = 9999U, MIN_PRICE_VALUE = 1U;
 
 enum class OrderType { BUY, SELL, UNDEFINED };
 
@@ -26,31 +30,29 @@ constexpr std::string_view to_string(OrderType orderType) {
   }
 }
 
-using Price = unsigned int;
-
 /**
  * @brief Orders coming from the input source.
  * 
  */
 struct InputOrder {
-  unsigned long long userId;
+  UserId userId;
   Price price;
-  unsigned int amount;
+  Amount amount;
   OrderType type;
 };
 
 std::ostream& operator<<(std::ostream& os, const InputOrder& order);
 
-InputOrder buy(unsigned long long userId, Price price, unsigned int amount);
-InputOrder sell(unsigned long long userId, Price price, unsigned int amount);
+InputOrder buy(UserId userId, Price price, Amount amount);
+InputOrder sell(UserId userId, Price price, Amount amount);
 
 /**
  * @brief Orders handled inside the order book. Price of order is known.
  * 
  */
 struct Order {
-  unsigned long long userId;
-  unsigned int amount;
+  UserId userId;
+  Amount amount;
 };
 
 enum class OrderBookError { PRICE_OUT_OF_RANGE };

@@ -1,7 +1,6 @@
 add_library(OrderGeneratorLib STATIC order_generator.cpp)
 
-target_include_directories(OrderGeneratorLib PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../order-book/include)
+target_include_directories(OrderGeneratorLib PUBLIC 
+    ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
-target_link_libraries(OrderGeneratorLib PRIVATE target_flags)
+target_link_libraries(OrderGeneratorLib PUBLIC OrderBookLib PRIVATE target_flags)

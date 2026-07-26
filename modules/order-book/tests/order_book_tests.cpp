@@ -12,13 +12,13 @@ using namespace ob;
  * @param price price with orders at
  * @return number of shares present 
  */
-unsigned int restingAt(const OrderBook& ob, Price price) {
+Amount restingAt(const OrderBook& ob, Price price) {
   auto orders = ob.getOrdersAtPrice(price);
   if (!orders.has_value()) {
     return -1;
   }
 
-  unsigned int total = 0U;
+  Amount total = 0U;
   std::for_each(orders.value().cbegin(), orders.value().cend(),
                 [&](const Order& order) { total += order.amount; });
 
@@ -34,6 +34,12 @@ constexpr OrderType oppositeOrderType(OrderType type) {
     case OrderType::UNDEFINED:
       return OrderType::UNDEFINED;
   }
+}
+
+TEST(OrderBookTypes, TypeToString) {
+  ASSERT_STREQ("BUY", ob::to_string(ob::OrderType::BUY).data());
+  ASSERT_STREQ("SELL", ob::to_string(ob::OrderType::SELL).data());
+  ASSERT_STREQ("UNDEFINED", ob::to_string(ob::OrderType::UNDEFINED).data());
 }
 
 TEST(OrderBookGetOrders, NonExisting) {
