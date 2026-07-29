@@ -14,13 +14,13 @@ constexpr double PRICE_STDDEV = 1250;
 class OrderGenerator {
  public:
   explicit OrderGenerator(unsigned int seed)
-      : generatorEngine(seed),
-        userIdGen(MIN_USER_ID, MAX_USER_ID),
-        priceGen(ob::MIN_PRICE_VALUE +
+      : generatorEngine_(seed),
+        userIdGen_(MIN_USER_ID, MAX_USER_ID),
+        priceGen_(ob::MIN_PRICE_VALUE +
                      (ob::MAX_PRICE_VALUE - ob::MIN_PRICE_VALUE) / 2,
                  PRICE_STDDEV),
-        amountGen(MIN_AMOUNT_VALUE, MAX_AMOUNT_VALUE),
-        orderTypeGen(0.5) {}
+        amountGen_(MIN_AMOUNT_VALUE, MAX_AMOUNT_VALUE),
+        orderTypeGen_(0.5) {}
 
   /**
   * @brief Generates an input order with random values:
@@ -47,12 +47,12 @@ class OrderGenerator {
 
   /* Variables that are used for generating random values */
  private:
-  std::mt19937 generatorEngine;
+  std::mt19937 generatorEngine_;
 
-  std::uniform_int_distribution<ob::UserId> userIdGen;
-  std::normal_distribution<double> priceGen;
-  std::uniform_int_distribution<ob::Amount> amountGen;
-  std::bernoulli_distribution orderTypeGen;
+  std::uniform_int_distribution<ob::UserId> userIdGen_;
+  std::normal_distribution<double> priceGen_;
+  std::uniform_int_distribution<ob::Amount> amountGen_;
+  std::bernoulli_distribution orderTypeGen_;
 };
 }  // namespace og
 

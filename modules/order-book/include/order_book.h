@@ -83,13 +83,13 @@ class OrderBook {
   * @brief Array of prices that holds bids and asks.
   * 
   */
-  std::array<std::queue<Order>, MAX_PRICE_VALUE + 1> prices;
+  std::array<std::queue<Order>, MAX_PRICE_VALUE + 1> prices_;
 
   /**
    * @brief Take care of top bids price and bottom asks price.
    * 
    */
-  Price bidsStart{MIN_PRICE_VALUE}, asksStart{MAX_PRICE_VALUE};
+  Price bidsStart_{MIN_PRICE_VALUE}, asksStart_{MAX_PRICE_VALUE};
 };
 
 }  // namespace ob
