@@ -2,53 +2,32 @@
 #define ORDER_BOOK_LOGGER_H
 
 #include <chrono>
+#include <expected>
 #include <filesystem>
 #include <fstream>
-#include <iostream>
+#include <memory>
 #include <mutex>
-#include <print>
 #include "order_book.h"
 
 namespace ob_logger {
 
-/* Not used now; for future extensions */
-enum class LogLevel { INFO, WARNING, ERROR };
+std::string formatExecutedOrder(const ob::ExecutedOrder& order,
+                                std::chrono::system_clock::time_point when);
 
-struct ExecutedOrder {
-  ob::UserId buyer;
-  ob::UserId seller;
-  ob::OrderType type;
-  ob::Price price;
-  ob::Amount amount;
-};
+enum class LoggerError { FAILED_TO_OPEN_FILE };
 
 class Logger {
+ private:
+  Logger() = default;
+
  public:
-  explicit Logger(const std::filesystem::path& path)
-      : out_{path, std::ios::app} {
-    if (!out_) {
-      std::cerr << "Failed to open the file - " << path.string() << " !"
-                << std::endl;
-      exit(1);
-    }
-  };
+  static std::expected<std::unique_ptr<Logger>, LoggerError> create(
+      const std::filesystem::path& path);
 
   Logger(const Logger&) = delete;
   Logger& operator=(const Logger&) = delete;
 
-  void recordExecutedOrder(const ExecutedOrder& order) {
-    const auto now = std::chrono::floor<std::chrono::milliseconds>(
-        std::chrono::system_clock::now());
-
-    const std::chrono::zoned_time timestamp{std::chrono::current_zone(), now};
-
-    std::lock_guard lock{mtx_};
-    std::println(out_,
-                 "[{}] OPERATION={}, BUYER={}, SELLER={}, PRICE={}, AMOUNT={}",
-                 timestamp, ob::to_string(order.type), order.buyer,
-                 order.seller, order.price, order.amount);
-    out_.flush();
-  }
+  void recordExecutedOrder(const ob::ExecutedOrder& order);
 
  private:
   std::ofstream out_;

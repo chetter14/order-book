@@ -59,6 +59,14 @@ enum class OrderBookError { PRICE_OUT_OF_RANGE };
 
 std::ostream& operator<<(std::ostream& os, const Order& order);
 
+struct ExecutedOrder {
+  UserId buyer;
+  UserId seller;
+  OrderType type;
+  Price price;
+  Amount amount;
+};
+
 class OrderBook {
  public:
   std::expected<void, OrderBookError> applyOrder(const InputOrder&);
