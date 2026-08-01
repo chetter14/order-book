@@ -20,24 +20,24 @@ ob::InputOrder ob::sell(UserId userId, ob::Price price, Amount amount) {
 }
 
 void ob::OrderBook::advanceAsksBoundary() {
-  auto candidateAsks = std::views::iota(asksStart_, MAX_PRICE_VALUE + 1);
+  auto candidateAsks = std::views::iota(m_asksStart, MAX_PRICE_VALUE + 1);
 
   auto firstNotEmptyAsk = std::ranges::find_if(
-      candidateAsks, [this](std::size_t i) { return !prices_[i].empty(); });
+      candidateAsks, [this](std::size_t i) { return !m_prices[i].empty(); });
 
-  asksStart_ = (firstNotEmptyAsk != candidateAsks.end()) ? *firstNotEmptyAsk
-                                                         : MAX_PRICE_VALUE;
+  m_asksStart = (firstNotEmptyAsk != candidateAsks.end()) ? *firstNotEmptyAsk
+                                                          : MAX_PRICE_VALUE;
 }
 
 void ob::OrderBook::retreatBidsBoundary() {
   auto candidateBids =
-      std::views::iota(MIN_PRICE_VALUE, bidsStart_ + 1) | std::views::reverse;
+      std::views::iota(MIN_PRICE_VALUE, m_bidsStart + 1) | std::views::reverse;
 
   auto firstNotEmptyBid = std::ranges::find_if(
-      candidateBids, [this](std::size_t i) { return !prices_[i].empty(); });
+      candidateBids, [this](std::size_t i) { return !m_prices[i].empty(); });
 
-  bidsStart_ = (firstNotEmptyBid != candidateBids.end()) ? *firstNotEmptyBid
-                                                         : MIN_PRICE_VALUE;
+  m_bidsStart = (firstNotEmptyBid != candidateBids.end()) ? *firstNotEmptyBid
+                                                          : MIN_PRICE_VALUE;
 }
 
 std::ostream& ob::operator<<(std::ostream& os,
@@ -54,7 +54,7 @@ std::ostream& ob::operator<<(std::ostream& os, const ob::Order& order) {
 }
 
 void ob::OrderBook::addOrderAtPrice(const ob::Order& order, ob::Price price) {
-  prices_[price].emplace(order.userId, order.amount);
+  m_prices[price].emplace(order.userId, order.amount);
 }
 
 /**
@@ -71,7 +71,7 @@ ob::OrderBook::getOrdersAtPrice(ob::Price price) const {
     return std::unexpected(ob::OrderBookError::PRICE_OUT_OF_RANGE);
   }
 
-  const auto& orders = prices_[price];
+  const auto& orders = m_prices[price];
   auto tempOrders = orders;
 
   std::vector<ob::Order> res;
@@ -89,13 +89,14 @@ std::size_t ob::OrderBook::getTotalOrdersCount() const {
   std::size_t count = 0U;
 
   std::ranges::for_each(
-      prices_, [this, &count](const auto& orders) { count += orders.size(); });
+      m_prices, [this, &count](const auto& orders) { count += orders.size(); });
 
   return count;
 }
 
-void executeOrdersAtPrice(std::queue<ob::Order>& ordersQueue,
-                          ob::Amount& sharesLeft) {
+void ob::OrderBook::executeOrdersAtPrice(std::queue<ob::Order>& ordersQueue,
+                                         ob::Amount& sharesLeft,
+                                         LogInfo&& logInfo) {
   while (!ordersQueue.empty() && sharesLeft > 0) {
     auto& order = ordersQueue.front();
 
@@ -103,12 +104,34 @@ void executeOrdersAtPrice(std::queue<ob::Order>& ordersQueue,
     if (sharesLeft >= order.amount) {
       ordersQueue.pop();
       sharesLeft -= order.amount;
+
+      /* Amount that was executed */
+      logInfo.amount = order.amount;
     }
     /* Bid/ask can be executed only partially */
     else {
       order.amount -= sharesLeft;
+
+      logInfo.amount = sharesLeft;
+
       /* Buyer/seller's amount of shares is completed */
       sharesLeft = 0;
+    }
+
+    if (!m_logger) {
+      if (logInfo.incomingOrderType == ob::OrderType::BUY) {
+        m_logger->recordExecutedOrder({.buyer = logInfo.incomingOrderUserId,
+                                       .seller = order.userId,
+                                       .type = ob::OrderType::BUY,
+                                       .price = logInfo.atPrice,
+                                       .amount = logInfo.amount});
+      } else {
+        m_logger->recordExecutedOrder({.buyer = order.userId,
+                                       .seller = logInfo.incomingOrderUserId,
+                                       .type = ob::OrderType::SELL,
+                                       .price = logInfo.atPrice,
+                                       .amount = logInfo.amount});
+      }
     }
   }
 }
@@ -124,8 +147,12 @@ void ob::OrderBook::executeBid(const ob::Order& newOrder, ob::Price bidPrice) {
   auto sharesLeft = newOrder.amount;
 
   /* Iterate over array to match the buy with available offers */
-  for (auto i = asksStart_; i <= bidPrice && sharesLeft > 0; ++i) {
-    executeOrdersAtPrice(prices_[i], sharesLeft);
+  for (auto i = m_asksStart; i <= bidPrice && sharesLeft > 0; ++i) {
+    executeOrdersAtPrice(m_prices[i], sharesLeft,
+                         {.incomingOrderType = ob::OrderType::BUY,
+                          .incomingOrderUserId = newOrder.userId,
+                          .atPrice = i,
+                          .amount = 0});
   }
 
   advanceAsksBoundary();
@@ -134,7 +161,7 @@ void ob::OrderBook::executeBid(const ob::Order& newOrder, ob::Price bidPrice) {
   if (sharesLeft > 0) {
     addOrderAtPrice(ob::Order{.userId = newOrder.userId, .amount = sharesLeft},
                     bidPrice);
-    bidsStart_ = bidPrice;
+    m_bidsStart = bidPrice;
   }
 }
 
@@ -149,8 +176,12 @@ void ob::OrderBook::executeAsk(const ob::Order& newOrder, ob::Price askPrice) {
   auto sharesLeft = newOrder.amount;
 
   /* Iterate over array to match the ask with available buyers */
-  for (auto i = bidsStart_; i >= askPrice && sharesLeft > 0; --i) {
-    executeOrdersAtPrice(prices_[i], sharesLeft);
+  for (auto i = m_bidsStart; i >= askPrice && sharesLeft > 0; --i) {
+    executeOrdersAtPrice(m_prices[i], sharesLeft,
+                         {.incomingOrderType = ob::OrderType::SELL,
+                          .incomingOrderUserId = newOrder.userId,
+                          .atPrice = i,
+                          .amount = 0});
   }
 
   retreatBidsBoundary();
@@ -159,7 +190,7 @@ void ob::OrderBook::executeAsk(const ob::Order& newOrder, ob::Price askPrice) {
   if (sharesLeft > 0) {
     addOrderAtPrice(ob::Order{.userId = newOrder.userId, .amount = sharesLeft},
                     askPrice);
-    asksStart_ = askPrice;
+    m_asksStart = askPrice;
   }
 }
 
@@ -179,13 +210,13 @@ std::expected<void, ob::OrderBookError> ob::OrderBook::applyOrder(
                          .amount = inputOrder.amount};
 
       /* Buy price covers asks price */
-      if (inputOrderPrice >= asksStart_) {
+      if (inputOrderPrice >= m_asksStart) {
         executeBid(newOrder, inputOrderPrice);
       }
       /* Buy price exceeds the highest bid */
-      else if (bidsStart_ < inputOrderPrice) {
+      else if (m_bidsStart < inputOrderPrice) {
         addOrderAtPrice(newOrder, inputOrderPrice);
-        bidsStart_ = inputOrderPrice;
+        m_bidsStart = inputOrderPrice;
       }
       /* Buy price is lower than or equal to the highest bid */
       else {
@@ -200,13 +231,13 @@ std::expected<void, ob::OrderBookError> ob::OrderBook::applyOrder(
                          .amount = inputOrder.amount};
 
       /* Sell price covers bids price */
-      if (inputOrderPrice <= bidsStart_) {
+      if (inputOrderPrice <= m_bidsStart) {
         executeAsk(newOrder, inputOrderPrice);
       }
       /* Sell price is below the lowest ask */
-      else if (inputOrderPrice < asksStart_) {
+      else if (inputOrderPrice < m_asksStart) {
         addOrderAtPrice(newOrder, inputOrderPrice);
-        asksStart_ = inputOrderPrice;
+        m_asksStart = inputOrderPrice;
       }
       /* Sell price is higher than or equal to the lowest ask */
       else {

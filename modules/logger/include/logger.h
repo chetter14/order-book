@@ -16,6 +16,13 @@ std::string formatExecutedOrder(const ob::ExecutedOrder& order,
 
 enum class LoggerError { FAILED_TO_OPEN_FILE };
 
+constexpr std::string_view to_string(LoggerError loggerError) {
+  switch (loggerError) {
+    case LoggerError::FAILED_TO_OPEN_FILE:
+      return "FAILED_TO_OPEN_FILE";
+  }
+}
+
 class Logger {
  private:
   Logger() = default;

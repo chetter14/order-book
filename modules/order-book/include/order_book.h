@@ -4,10 +4,12 @@
 #include <array>
 #include <expected>
 #include <limits>
+#include <memory>
 #include <ostream>
 #include <queue>
 #include <string>
 #include <vector>
+#include "logger.h"
 
 namespace ob {
 
@@ -75,13 +77,28 @@ class OrderBook {
   std::expected<std::vector<Order>, OrderBookError> getOrdersAtPrice(
       Price) const;
 
+  void setLogger(std::unique_ptr<ob_logger::Logger>&& logger) {
+    m_logger = std::move(logger);
+  }
+
   void dump(std::ostream& os) const;
+
+ private:
+  struct LogInfo {
+    ob::OrderType incomingOrderType;
+    ob::UserId incomingOrderUserId;
+    ob::Price atPrice;
+    ob::Amount amount;
+  };
 
  private:
   void addOrderAtPrice(const Order&, Price);
 
   void executeBid(const Order&, Price);
   void executeAsk(const Order&, Price);
+
+  void executeOrdersAtPrice(std::queue<ob::Order>& ordersQueue,
+                            ob::Amount& sharesLeft, LogInfo&& logInfo);
 
   void advanceAsksBoundary();
   void retreatBidsBoundary();
@@ -91,13 +108,15 @@ class OrderBook {
   * @brief Array of prices that holds bids and asks.
   * 
   */
-  std::array<std::queue<Order>, MAX_PRICE_VALUE + 1> prices_;
+  std::array<std::queue<Order>, MAX_PRICE_VALUE + 1> m_prices;
 
   /**
    * @brief Take care of top bids price and bottom asks price.
    * 
    */
-  Price bidsStart_{MIN_PRICE_VALUE}, asksStart_{MAX_PRICE_VALUE};
+  Price m_bidsStart{MIN_PRICE_VALUE}, m_asksStart{MAX_PRICE_VALUE};
+
+  std::unique_ptr<ob_logger::Logger> m_logger;
 };
 
 }  // namespace ob
