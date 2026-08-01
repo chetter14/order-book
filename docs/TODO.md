@@ -9,7 +9,7 @@
 - **M2. Driven end to end.**
     - Implement an order generator. Write unit-tests. Get >=95% of lines coverage.
     - Implement a logger. Write unit-tests. Get >=95% of lines coverage.
-    - The complete system is single-threaded at the moment.
+    - Connect modules with each other (to a single thread app).
     - Write integration tests (to check that the complete pipeline works as expected).
 
 - **M3. Measurable.**

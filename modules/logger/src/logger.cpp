@@ -1,6 +1,4 @@
 #include "logger.h"
-#include <iostream>
-#include <print>
 #include <sstream>
 
 std::expected<std::unique_ptr<ob_logger::Logger>, ob_logger::LoggerError>
@@ -34,9 +32,8 @@ void ob_logger::Logger::recordExecutedOrder(const ob::ExecutedOrder& order) {
 
   std::lock_guard lock{mtx_};
 
-  const auto now = std::chrono::floor<std::chrono::milliseconds>(
-      std::chrono::system_clock::now());
+  const auto now = std::chrono::system_clock::now();
 
-  out_ << formatExecutedOrder(order, now);
+  out_ << formatExecutedOrder(order, now) << "\n";
   out_.flush();
 }
