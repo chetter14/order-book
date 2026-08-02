@@ -8,21 +8,23 @@
 int main() {
   std::cout << "Launched an order book app" << std::endl;
 
-  auto result = ob_logger::Logger::create("logs.txt");
-  if (!result.has_value()) {
-    std::cout << ob_logger::to_string(result.error()) << "\n";
+  auto logCreateResult = ob_logger::Logger::create("logs.txt");
+  if (!logCreateResult.has_value()) {
+    std::cout << ob_logger::to_string(logCreateResult.error()) << "\n";
     exit(1);
   }
 
+  auto logger = std::move(logCreateResult.value());
+
   ob::OrderBook orderBook{};
-  orderBook.setLogger(std::move(result.value()));
+  orderBook.setSink(logger.get());
 
   og::OrderGenerator orderGen{1};
 
   while (true) {
     auto inputOrder = orderGen.generateOrder();
-    auto result = orderBook.applyOrder(inputOrder);
-    if (result.has_value()) {
+    auto applyResult = orderBook.applyOrder(inputOrder);
+    if (applyResult.has_value()) {
       std::cout << inputOrder << " was applied\n";
     }
 

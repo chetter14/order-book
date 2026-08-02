@@ -102,11 +102,12 @@ void ob::OrderBook::executeOrdersAtPrice(std::queue<ob::Order>& ordersQueue,
 
     /* Bid/ask can be executed fully because there is a seller/buyer */
     if (sharesLeft >= order.amount) {
-      ordersQueue.pop();
       sharesLeft -= order.amount;
 
       /* Amount that was executed */
       logInfo.amount = order.amount;
+
+      ordersQueue.pop();
     }
     /* Bid/ask can be executed only partially */
     else {
@@ -118,19 +119,19 @@ void ob::OrderBook::executeOrdersAtPrice(std::queue<ob::Order>& ordersQueue,
       sharesLeft = 0;
     }
 
-    if (!m_logger) {
+    if (m_sink) {
       if (logInfo.incomingOrderType == ob::OrderType::BUY) {
-        m_logger->recordExecutedOrder({.buyer = logInfo.incomingOrderUserId,
-                                       .seller = order.userId,
-                                       .type = ob::OrderType::BUY,
-                                       .price = logInfo.atPrice,
-                                       .amount = logInfo.amount});
+        m_sink->onExecuted({.buyer = logInfo.incomingOrderUserId,
+                            .seller = order.userId,
+                            .type = ob::OrderType::BUY,
+                            .price = logInfo.atPrice,
+                            .amount = logInfo.amount});
       } else {
-        m_logger->recordExecutedOrder({.buyer = order.userId,
-                                       .seller = logInfo.incomingOrderUserId,
-                                       .type = ob::OrderType::SELL,
-                                       .price = logInfo.atPrice,
-                                       .amount = logInfo.amount});
+        m_sink->onExecuted({.buyer = order.userId,
+                            .seller = logInfo.incomingOrderUserId,
+                            .type = ob::OrderType::SELL,
+                            .price = logInfo.atPrice,
+                            .amount = logInfo.amount});
       }
     }
   }
@@ -151,8 +152,7 @@ void ob::OrderBook::executeBid(const ob::Order& newOrder, ob::Price bidPrice) {
     executeOrdersAtPrice(m_prices[i], sharesLeft,
                          {.incomingOrderType = ob::OrderType::BUY,
                           .incomingOrderUserId = newOrder.userId,
-                          .atPrice = i,
-                          .amount = 0});
+                          .atPrice = i});
   }
 
   advanceAsksBoundary();
@@ -180,8 +180,7 @@ void ob::OrderBook::executeAsk(const ob::Order& newOrder, ob::Price askPrice) {
     executeOrdersAtPrice(m_prices[i], sharesLeft,
                          {.incomingOrderType = ob::OrderType::SELL,
                           .incomingOrderUserId = newOrder.userId,
-                          .atPrice = i,
-                          .amount = 0});
+                          .atPrice = i});
   }
 
   retreatBidsBoundary();

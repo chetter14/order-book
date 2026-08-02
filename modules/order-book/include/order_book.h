@@ -9,39 +9,12 @@
 #include <queue>
 #include <string>
 #include <vector>
-#include "logger.h"
+#include "custom_types.h"
+#include "execution_sink.h"
 
 namespace ob {
 
-using UserId = unsigned long long;
-using Price = unsigned int;
-using Amount = unsigned int;
-
 constexpr Price MAX_PRICE_VALUE = 9999U, MIN_PRICE_VALUE = 1U;
-
-enum class OrderType { BUY, SELL, UNDEFINED };
-
-constexpr std::string_view to_string(OrderType orderType) {
-  switch (orderType) {
-    case OrderType::BUY:
-      return "BUY";
-    case OrderType::SELL:
-      return "SELL";
-    case OrderType::UNDEFINED:
-      return "UNDEFINED";
-  }
-}
-
-/**
- * @brief Orders coming from the input source.
- * 
- */
-struct InputOrder {
-  UserId userId;
-  Price price;
-  Amount amount;
-  OrderType type;
-};
 
 std::ostream& operator<<(std::ostream& os, const InputOrder& order);
 
@@ -61,14 +34,6 @@ enum class OrderBookError { PRICE_OUT_OF_RANGE };
 
 std::ostream& operator<<(std::ostream& os, const Order& order);
 
-struct ExecutedOrder {
-  UserId buyer;
-  UserId seller;
-  OrderType type;
-  Price price;
-  Amount amount;
-};
-
 class OrderBook {
  public:
   std::expected<void, OrderBookError> applyOrder(const InputOrder&);
@@ -77,8 +42,8 @@ class OrderBook {
   std::expected<std::vector<Order>, OrderBookError> getOrdersAtPrice(
       Price) const;
 
-  void setLogger(std::unique_ptr<ob_logger::Logger>&& logger) {
-    m_logger = std::move(logger);
+  void setSink(ExecutionSink *sink) {
+    m_sink = sink;
   }
 
   void dump(std::ostream& os) const;
@@ -116,7 +81,7 @@ class OrderBook {
    */
   Price m_bidsStart{MIN_PRICE_VALUE}, m_asksStart{MAX_PRICE_VALUE};
 
-  std::unique_ptr<ob_logger::Logger> m_logger;
+  ExecutionSink *m_sink = nullptr;
 };
 
 }  // namespace ob

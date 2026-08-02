@@ -6,8 +6,8 @@ ob_logger::Logger::create(const std::filesystem::path& path) {
 
   std::unique_ptr<ob_logger::Logger> logger{new Logger()};
 
-  logger->out_ = std::ofstream{path, std::ios::app};
-  if (!logger->out_) {
+  logger->m_out = std::ofstream{path, std::ios::app};
+  if (!logger->m_out) {
     return std::unexpected(ob_logger::LoggerError::FAILED_TO_OPEN_FILE);
   }
 
@@ -30,10 +30,10 @@ std::string ob_logger::formatExecutedOrder(
 
 void ob_logger::Logger::recordExecutedOrder(const ob::ExecutedOrder& order) {
 
-  std::lock_guard lock{mtx_};
+  std::lock_guard lock{m_mtx};
 
   const auto now = std::chrono::system_clock::now();
 
-  out_ << formatExecutedOrder(order, now) << "\n";
-  out_.flush();
+  m_out << formatExecutedOrder(order, now) << "\n";
+  m_out.flush();
 }

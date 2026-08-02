@@ -7,7 +7,8 @@
 #include <fstream>
 #include <memory>
 #include <mutex>
-#include "order_book.h"
+#include "custom_types.h"
+#include "execution_sink.h"
 
 namespace ob_logger {
 
@@ -23,7 +24,7 @@ constexpr std::string_view to_string(LoggerError loggerError) {
   }
 }
 
-class Logger {
+class Logger : public ob::ExecutionSink {
  private:
   Logger() = default;
 
@@ -39,11 +40,15 @@ class Logger {
 
   ~Logger() = default;
 
+  void onExecuted(const ob::ExecutedOrder& order) override {
+    recordExecutedOrder(order);
+  }
+
   void recordExecutedOrder(const ob::ExecutedOrder& order);
 
  private:
-  std::ofstream out_;
-  std::mutex mtx_;
+  std::ofstream m_out;
+  std::mutex m_mtx;
 };
 
 }  // namespace ob_logger
