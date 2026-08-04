@@ -53,7 +53,6 @@ class OrderBook {
     ob::OrderType incomingOrderType;
     ob::UserId incomingOrderUserId;
     ob::Price atPrice;
-    ob::Amount amount;
   };
 
  private:

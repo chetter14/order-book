@@ -98,40 +98,35 @@ void ob::OrderBook::executeOrdersAtPrice(std::queue<ob::Order>& ordersQueue,
                                          ob::Amount& sharesLeft,
                                          LogInfo&& logInfo) {
   while (!ordersQueue.empty() && sharesLeft > 0) {
-    auto& order = ordersQueue.front();
+    const auto resting = ordersQueue.front();
+    ob::Amount executed = 0U;
 
     /* Bid/ask can be executed fully because there is a seller/buyer */
-    if (sharesLeft >= order.amount) {
-      sharesLeft -= order.amount;
-
-      /* Amount that was executed */
-      logInfo.amount = order.amount;
-
+    if (sharesLeft >= resting.amount) {
+      executed = resting.amount;
       ordersQueue.pop();
     }
     /* Bid/ask can be executed only partially */
     else {
-      order.amount -= sharesLeft;
-
-      logInfo.amount = sharesLeft;
-
-      /* Buyer/seller's amount of shares is completed */
-      sharesLeft = 0;
+      executed = sharesLeft;
+      ordersQueue.front().amount -= sharesLeft;
     }
+
+    sharesLeft -= executed;
 
     if (m_sink) {
       if (logInfo.incomingOrderType == ob::OrderType::BUY) {
         m_sink->onExecuted({.buyer = logInfo.incomingOrderUserId,
-                            .seller = order.userId,
+                            .seller = resting.userId,
                             .type = ob::OrderType::BUY,
                             .price = logInfo.atPrice,
-                            .amount = logInfo.amount});
+                            .amount = executed});
       } else {
-        m_sink->onExecuted({.buyer = order.userId,
+        m_sink->onExecuted({.buyer = resting.userId,
                             .seller = logInfo.incomingOrderUserId,
                             .type = ob::OrderType::SELL,
                             .price = logInfo.atPrice,
-                            .amount = logInfo.amount});
+                            .amount = executed});
       }
     }
   }
